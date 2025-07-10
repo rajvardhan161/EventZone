@@ -1,0 +1,44 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+
+/* Tailwind Base Setup */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollbar Hidden */
+::-webkit-scrollbar {
+  @apply hidden;
+}
+
+/* Global Font */
+* {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* --- Print Styles --- */
+/* ... rest of your print styles ... */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible !important;
+  }
+  .printable-area {
+    position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important;
+    margin: 0 !important; padding: 10mm !important; border: none !important; box-shadow: none !important;
+    background-color: white !important;
+  }
+   body {
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    font-size: 10pt !important; color: #000 !important; background-color: #fff !important; margin: 0 !important;
+  }
+  .print-hidden, .print\:hidden { display: none !important; }
+  a { text-decoration: none !important; color: inherit !important; }
+  .print\:text-black { color: #000 !important; } .print\:text-xs { font-size: 0.75rem !important; }
+  .print\:text-sm { font-size: 0.875rem !important; } .print\:font-semibold { font-weight: 600 !important; }
+  .print\:border-b-black { border-bottom: 1px solid #000 !important; } .print\:border-none { border: none !important; }
+  .print\:shadow-none { box-shadow: none !important; } .print\:p-0 { padding: 0 !important; }
+  .print\:m-0 { margin: 0 !important; } .print\:bg-transparent { background-color: transparent !important; }
+}
