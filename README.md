@@ -57,16 +57,16 @@ Eventzone is a platform for managing events, where users can view, apply for, an
 1. Run the backend:
     ```bash
     cd backend
-    npm start
+    npm run start
     ```
 
 2. Run the frontend:
     ```bash
     cd frontend
-    npm start
+    npm run dev
     ```
 
-The app will now be running locally at [http://localhost:3000](http://localhost:3000).
+The app will now be running locally at [http://localhost:3000](http://localhost:4000).
 
 ## Contributing
 
