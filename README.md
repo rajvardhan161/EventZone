@@ -66,7 +66,7 @@ Eventzone is a platform for managing events, where users can view, apply for, an
     npm run dev
     ```
 
-The app will now be running locally at [http://localhost:3000](http://localhost:4000).
+The app will now be running locally at [http://localhost:4000](http://localhost:4000).
 
 ## Contributing
 
