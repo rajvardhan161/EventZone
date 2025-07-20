@@ -26,6 +26,7 @@ const EventManagement = () => {
       inputBorder: 'border-gray-300',
       fileButtonBg: 'file:bg-gray-200 hover:file:bg-gray-300',
       modalCloseButton: 'text-gray-300 hover:text-gray-900',
+      tableDataHover: 'hover:bg-gray-50', // For table rows
     },
     dark: {
       bg: 'bg-gray-800',
@@ -35,13 +36,14 @@ const EventManagement = () => {
       deleteButtonBg: 'text-red-400 hover:text-red-300',
       editButtonBg: 'text-indigo-400 hover:text-indigo-300',
       tableHeaderBg: 'bg-gray-700',
-      tableRowBg: 'bg-gray-700', // Use the same as header for dark mode simplicity, or define a darker shade
+      tableRowBg: 'bg-gray-700',
       modalBg: 'bg-gray-700',
       borderColor: 'border-gray-600',
       focusRing: 'focus:ring-blue-400',
       inputBorder: 'border-gray-600',
       fileButtonBg: 'file:bg-gray-600 hover:file:bg-gray-500',
       modalCloseButton: 'text-gray-400 hover:text-gray-200',
+      tableDataHover: 'hover:bg-gray-600', // For table rows
     }
   };
 
@@ -80,10 +82,77 @@ const EventManagement = () => {
     organizerName: '',
     organizerEmail: '',
     organizerPhone: '',
+    // New fields
+    participantLimit: '',
+    allowDutyLeave: false,
+    // File inputs
     eventImage: null,
     eventVideo: null,
     qrCode: null,
   });
+
+  // --- State for Calculated Duration ---
+  const [eventDuration, setEventDuration] = useState('');
+
+  // --- Auto-fill eventTime from eventDate ---
+  useEffect(() => {
+    if (formData.eventDate) {
+      try {
+        const dateObj = new Date(formData.eventDate);
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
+
+        if (formData.eventTime !== timeString) {
+          setFormData(prev => ({
+            ...prev,
+            eventTime: timeString,
+          }));
+        }
+      } catch (e) {
+        console.error("Error parsing date for auto-filling event time:", e);
+      }
+    }
+  }, [formData.eventDate]);
+
+  // --- Calculate and display event duration ---
+  useEffect(() => {
+    if (formData.eventDate && formData.eventEndDate) {
+      try {
+        const startDate = new Date(formData.eventDate);
+        const endDate = new Date(formData.eventEndDate);
+
+        if (!isNaN(startDate) && !isNaN(endDate) && endDate >= startDate) {
+          const diffMilliseconds = endDate.getTime() - startDate.getTime();
+          const totalMinutes = Math.round(diffMilliseconds / (1000 * 60));
+
+          const hours = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
+
+          let durationString = '';
+          if (hours > 0) {
+            durationString += `${hours} hour${hours !== 1 ? 's' : ''}`;
+          }
+          if (minutes > 0) {
+            if (durationString) durationString += ' ';
+            durationString += `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+          }
+          if (!durationString) {
+            durationString = '0 minutes'; // Handle cases where start and end are the same
+          }
+          setEventDuration(durationString);
+        } else {
+          setEventDuration(''); // Clear duration if dates are invalid or end is before start
+        }
+      } catch (e) {
+        console.error("Error calculating event duration:", e);
+        setEventDuration('');
+      }
+    } else {
+      setEventDuration(''); // Clear duration if either date is missing
+    }
+  }, [formData.eventDate, formData.eventEndDate]);
+
 
   // --- API Helper Functions ---
 
@@ -109,8 +178,15 @@ const EventManagement = () => {
         throw new Error(errorData.message || 'Failed to fetch events');
       }
       const data = await response.json();
-      setEvents(data);
-      setFilteredEvents(data); // Initialize filtered events with all events
+      const formattedData = data.map(event => ({
+        ...event,
+        eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : '',
+        eventEndDate: event.eventEndDate ? new Date(event.eventEndDate).toISOString().slice(0, 16) : '',
+        participantLimit: event.participantLimit === null ? '' : String(event.participantLimit),
+        allowDutyLeave: !!event.allowDutyLeave,
+      }));
+      setEvents(formattedData);
+      setFilteredEvents(formattedData);
     } catch (err) {
       setError(err.message);
       setEvents([]);
@@ -135,7 +211,15 @@ const EventManagement = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch event');
       }
-      return await response.json();
+      const event = await response.json();
+      return {
+        ...event,
+        eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : '',
+        eventEndDate: event.eventEndDate ? new Date(event.eventEndDate).toISOString().slice(0, 16) : '',
+        eventTime: event.eventDate ? new Date(event.eventDate).toISOString().slice(11, 16) : '',
+        participantLimit: event.participantLimit === null ? '' : String(event.participantLimit),
+        allowDutyLeave: !!event.allowDutyLeave,
+      };
     } catch (err) {
       setError(err.message);
       throw err;
@@ -156,26 +240,31 @@ const EventManagement = () => {
         body: eventFormData,
         headers: {
           'Authorization': `Bearer ${token}`,
-          // Do NOT set Content-Type here for FormData
         },
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         let errorMessage = 'Event creation failed';
-        if (errorData && errorData.error && typeof errorData.error === 'object') {
-          errorMessage = Object.values(errorData.error).join(', ');
-        } else if (errorData && errorData.message) {
+        if (errorData?.error && typeof errorData.error === 'object') {
+          errorMessage = Object.values(errorData.error).flat().join(', ');
+        } else if (errorData?.message) {
           errorMessage = errorData.message;
         }
         throw new Error(errorMessage);
       }
-      const newEvent = await response.json();
-      // Update the main events list and the filtered list
-      setEvents(prevEvents => [...prevEvents, newEvent.event]);
-      setFilteredEvents(prevFiltered => [...prevFiltered, newEvent.event]);
+      const newEventData = await response.json();
+      const savedEvent = {
+        ...newEventData.event,
+        participantLimit: newEventData.event.participantLimit === null ? '' : String(newEventData.event.participantLimit),
+        allowDutyLeave: !!newEventData.event.allowDutyLeave,
+        eventDate: newEventData.event.eventDate ? new Date(newEventData.event.eventDate).toISOString().slice(0, 16) : '',
+        eventEndDate: newEventData.event.eventEndDate ? new Date(newEventData.event.eventEndDate).toISOString().slice(0, 16) : '',
+      };
+      setEvents(prevEvents => [...prevEvents, savedEvent]);
+      setFilteredEvents(prevFiltered => [...prevFiltered, savedEvent]);
       alert('Event created successfully!');
-      return newEvent;
+      return newEventData;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -184,7 +273,7 @@ const EventManagement = () => {
     }
   };
 
-  // Update Event (JSON payload for text fields)
+  // Update Event
   const updateEvent = async (eventId, eventData) => {
     if (!backendUrl || !token) {
       setError("Authentication or backend URL missing.");
@@ -206,16 +295,23 @@ const EventManagement = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Event update failed');
       }
-      const updatedEvent = await response.json();
+      const updatedEventData = await response.json();
+      const updatedEvent = {
+        ...updatedEventData.event,
+        participantLimit: updatedEventData.event.participantLimit === null ? '' : String(updatedEventData.event.participantLimit),
+        allowDutyLeave: !!updatedEventData.event.allowDutyLeave,
+        eventDate: updatedEventData.event.eventDate ? new Date(updatedEventData.event.eventDate).toISOString().slice(0, 16) : '',
+        eventEndDate: updatedEventData.event.eventEndDate ? new Date(updatedEventData.event.eventEndDate).toISOString().slice(0, 16) : '',
+      };
+
       setEvents(prevEvents =>
-        prevEvents.map(event => (event._id === eventId ? updatedEvent.event : event))
+        prevEvents.map(event => (event._id === eventId ? updatedEvent : event))
       );
-      // Also update the filtered list
       setFilteredEvents(prevFiltered =>
-        prevFiltered.map(event => (event._id === eventId ? updatedEvent.event : event))
+        prevFiltered.map(event => (event._id === eventId ? updatedEvent : event))
       );
       alert('Event updated successfully!');
-      return updatedEvent;
+      return updatedEventData;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -246,7 +342,6 @@ const EventManagement = () => {
         throw new Error(errorData.message || 'Event deletion failed');
       }
       setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
-      // Also remove from filtered list
       setFilteredEvents(prevFiltered => prevFiltered.filter(event => event._id !== eventId));
       alert('Event deleted successfully!');
     } catch (err) {
@@ -271,8 +366,8 @@ const EventManagement = () => {
         (event.organizerName && event.organizerName.toLowerCase().includes(lowerCaseQuery))
       );
       setFilteredEvents(filtered);
-    }, 300), // Debounce for 300ms
-    [events] // Dependency array: re-create debounced function if events list changes
+    }, 300),
+    [events]
   );
 
   const handleSearch = (e) => {
@@ -300,7 +395,7 @@ const EventManagement = () => {
   const handleOpenCreateForm = () => {
     setIsEditing(false);
     setCurrentEvent(null);
-    setFormData({ // Reset form to default state
+    setFormData({
       eventName: '',
       eventDate: '',
       eventEndDate: '',
@@ -312,37 +407,46 @@ const EventManagement = () => {
       organizerName: '',
       organizerEmail: '',
       organizerPhone: '',
+      participantLimit: '',
+      allowDutyLeave: false,
       eventImage: null,
       eventVideo: null,
       qrCode: null,
     });
+    setEventDuration(''); // Reset duration when opening new form
     setIsFormOpen(true);
   };
 
   const handleOpenEditForm = async (eventId) => {
     try {
       const event = await fetchEventById(eventId);
-      setCurrentEvent(event);
-      setFormData({
-        eventName: event.eventName || '',
-        // Correctly format datetime-local input value
-        eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : '',
-        eventEndDate: event.eventEndDate ? new Date(event.eventEndDate).toISOString().slice(0, 16) : '',
-        eventTime: event.eventTime || '',
-        eventDescription: event.eventDescription || '',
-        location: event.location || '',
-        isPaid: event.isPaid || false,
-        price: event.price || 0,
-        organizerName: event.organizerName || '',
-        organizerEmail: event.organizerEmail || '',
-        organizerPhone: event.organizerPhone || '',
-        // Reset file inputs for edit mode
-        eventImage: null,
-        eventVideo: null,
-        qrCode: null,
-      });
-      setIsEditing(true);
-      setIsFormOpen(true);
+      if (event) {
+        setCurrentEvent(event);
+        setFormData({
+          eventName: event.eventName || '',
+          eventDate: event.eventDate || '',
+          eventEndDate: event.eventEndDate || '',
+          eventTime: event.eventTime || '',
+          eventDescription: event.eventDescription || '',
+          location: event.location || '',
+          isPaid: event.isPaid || false,
+          price: event.price || 0,
+          organizerName: event.organizerName || '',
+          organizerEmail: event.organizerEmail || '',
+          organizerPhone: event.organizerPhone || '',
+          participantLimit: event.participantLimit || '',
+          allowDutyLeave: event.allowDutyLeave || false,
+          eventImage: null,
+          eventVideo: null,
+          qrCode: null,
+        });
+        // When editing, the duration will be calculated by the useEffect hook,
+        // so we don't need to explicitly set eventDuration here unless we want to display it immediately on load.
+        // The useEffect will pick up the initial formData.eventDate and formData.eventEndDate.
+
+        setIsEditing(true);
+        setIsFormOpen(true);
+      }
     } catch (err) {
       // Error is handled by fetchEventById
     }
@@ -352,7 +456,7 @@ const EventManagement = () => {
     setIsFormOpen(false);
     setIsEditing(false);
     setCurrentEvent(null);
-    setFormData({ // Reset form data to initial state on close
+    setFormData({
       eventName: '',
       eventDate: '',
       eventEndDate: '',
@@ -364,25 +468,35 @@ const EventManagement = () => {
       organizerName: '',
       organizerEmail: '',
       organizerPhone: '',
+      participantLimit: '',
+      allowDutyLeave: false,
       eventImage: null,
       eventVideo: null,
       qrCode: null,
     });
+    setEventDuration(''); // Clear duration on close as well
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation for required fields
     if (!formData.eventName || !formData.eventDate || !formData.eventEndDate || !formData.organizerName || !formData.eventTime) {
       alert('Please fill in all required fields (Event Name, Start Date/Time, End Date/Time, Organizer Name, Event Time).');
       return;
     }
 
+    if (formData.isPaid && (formData.price === null || formData.price === undefined || String(formData.price).trim() === '' || parseFloat(formData.price) < 0)) {
+        alert('Please enter a valid price for a paid event.');
+        return;
+    }
+
+    const limitAsNumber = formData.participantLimit === '' ? null : parseInt(formData.participantLimit, 10);
+    if (formData.participantLimit !== '' && (isNaN(limitAsNumber) || limitAsNumber < 0)) {
+      alert('Participant limit must be a non-negative number.');
+      return;
+    }
+
     if (isEditing && currentEvent) {
-      // --- Update Event (JSON for text fields) ---
-      // Note: This update function does not handle file uploads.
-      // File updates would require a separate API endpoint that accepts FormData.
       const dataToUpdate = {
         eventName: formData.eventName,
         eventDate: formData.eventDate,
@@ -391,10 +505,12 @@ const EventManagement = () => {
         eventDescription: formData.eventDescription,
         location: formData.location,
         isPaid: formData.isPaid,
-        price: formData.price,
+        price: formData.isPaid ? parseFloat(formData.price) : 0,
         organizerName: formData.organizerName,
         organizerEmail: formData.organizerEmail,
         organizerPhone: formData.organizerPhone,
+        participantLimit: formData.participantLimit === '' ? null : limitAsNumber,
+        allowDutyLeave: formData.allowDutyLeave,
       };
       try {
         await updateEvent(currentEvent._id, dataToUpdate);
@@ -403,18 +519,15 @@ const EventManagement = () => {
         // Error already displayed by updateEvent
       }
     } else {
-      // --- Create Event (FormData for files) ---
       const eventFormData = new FormData();
       Object.keys(formData).forEach(key => {
-        // Append all fields except the file placeholders
         if (key !== 'eventImage' && key !== 'eventVideo' && key !== 'qrCode') {
           eventFormData.append(key, formData[key]);
         }
       });
-      // Append files if they are selected
       if (formData.eventImage) eventFormData.append('image', formData.eventImage);
       if (formData.eventVideo) eventFormData.append('video', formData.eventVideo);
-      if (formData.qrCode) eventFormData.append('qrCode', formData.qrCode); // Ensure this name matches backend
+      if (formData.qrCode) eventFormData.append('qrCode', formData.qrCode);
 
       try {
         await createEvent(eventFormData);
@@ -503,15 +616,16 @@ const EventManagement = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Name</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Media</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Limits</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duty Leave</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className={`${currentThemeClasses.tableRowBg} divide-y ${currentThemeClasses.borderColor}`}>
                 {filteredEvents.map(event => (
-                  <tr key={event._id}>
+                  <tr key={event._id} className={currentThemeClasses.tableDataHover}>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${currentThemeClasses.text}`}>{event.eventName}</td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentThemeClasses.subtleText}`}>
                       {event.eventDate ? `${new Date(event.eventDate).toLocaleDateString()} ${event.eventTime || ''}` : 'N/A'}
@@ -523,22 +637,19 @@ const EventManagement = () => {
                           onClick={() => openMediaModal('image', event.eventImageURL)}
                           className={`hover:underline ${currentThemeClasses.editButtonBg}`}
                         >
-                          View Image
+                          Image
                         </button>
-                      ) : (
-                        <span>No Image</span>
-                      )}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentThemeClasses.subtleText}`}>
+                      ) : null}
+                      {event.eventImageURL && event.eventVideoURL ? ' / ' : null}
                       {event.eventVideoURL ? (
                         <button
                           onClick={() => openMediaModal('video', event.eventVideoURL)}
                           className={`hover:underline ${currentThemeClasses.editButtonBg}`}
                         >
-                          Watch Video
+                          Video
                         </button>
                       ) : (
-                        <span>No Video</span>
+                        !event.eventImageURL && <span>No Media</span>
                       )}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentThemeClasses.subtleText}`}>
@@ -548,7 +659,7 @@ const EventManagement = () => {
                           {event.qrCodeImageURL && (
                             <button
                               onClick={() => openQrCodeModal(event.qrCodeImageURL)}
-                              className={`ml-2 hover:text-yellow-800 ${currentThemeClasses.editButtonBg}`} // Adjust color for QR icon if needed
+                              className={`ml-2 hover:text-yellow-800 focus:outline-none ${currentThemeClasses.editButtonBg}`}
                               title="View QR Code"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -561,18 +672,26 @@ const EventManagement = () => {
                         <span>Free</span>
                       )}
                     </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentThemeClasses.subtleText}`}>
+                      {event.participantLimit !== null && event.participantLimit !== ''
+                        ? `${event.participantLimit} people`
+                        : 'Unlimited'}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentThemeClasses.subtleText}`}>
+                      {event.allowDutyLeave ? 'Yes' : 'No'}
+                    </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium flex space-x-2`}>
                       <button
                         onClick={() => handleOpenEditForm(event._id)}
                         disabled={isSubmitting || !backendUrl || !token}
-                        className={`${currentThemeClasses.editButtonBg} focus:outline-none focus:underline disabled:text-gray-400`}
+                        className={`focus:outline-none ${currentThemeClasses.editButtonBg}`}
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => deleteEvent(event._id)}
                         disabled={isSubmitting || !backendUrl || !token}
-                        className={`${currentThemeClasses.deleteButtonBg} focus:outline-none focus:underline disabled:text-gray-400`}
+                        className={`focus:outline-none ${currentThemeClasses.deleteButtonBg}`}
                       >
                         Delete
                       </button>
@@ -631,12 +750,33 @@ const EventManagement = () => {
                     </div>
                   </div>
 
+                  {/* Display Duration */}
+                  <div className="mb-4">
+                    <label className={`block text-sm font-bold mb-2 ${currentThemeClasses.text}`} htmlFor="eventDuration">Duration</label>
+                    <input
+                      id="eventDuration"
+                      name="eventDuration"
+                      value={eventDuration}
+                      readOnly // Make it read-only
+                      className={`${currentThemeClasses.bg} ${currentThemeClasses.text} ${currentThemeClasses.inputBorder} shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none ${currentThemeClasses.focusRing} cursor-not-allowed`}
+                      placeholder="Calculated duration"
+                    />
+                  </div>
+
                   <div className="mb-4">
                     <label className={`block text-sm font-bold mb-2 ${currentThemeClasses.text}`} htmlFor="eventTime">Event Time (Specific)</label>
                     <input
                       id="eventTime" name="eventTime" value={formData.eventTime} onChange={handleInputChange}
                       className={`${currentThemeClasses.bg} ${currentThemeClasses.text} ${currentThemeClasses.inputBorder} shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none ${currentThemeClasses.focusRing}`}
                       type="time"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className={`block text-sm font-bold mb-2 ${currentThemeClasses.text}`} htmlFor="location">Location</label>
+                    <input
+                      id="location" name="location" value={formData.location} onChange={handleInputChange}
+                      className={`${currentThemeClasses.bg} ${currentThemeClasses.text} ${currentThemeClasses.inputBorder} shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none ${currentThemeClasses.focusRing}`}
+                      type="text" placeholder="Enter event location"
                     />
                   </div>
 
@@ -649,13 +789,13 @@ const EventManagement = () => {
                     />
                   </div>
 
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center">
                       <input
                         id="isPaid" name="isPaid" type="checkbox" checked={formData.isPaid} onChange={handleInputChange}
                         className={`mr-2 h-5 w-5 text-blue-600 rounded ${currentThemeClasses.focusRing}`}
                       />
-                      <label className={`text-sm font-bold mr-4 ${currentThemeClasses.text}`} htmlFor="isPaid">Is Paid Event?</label>
+                      <label className={`text-sm font-bold ${currentThemeClasses.text}`} htmlFor="isPaid">Is Paid Event?</label>
                     </div>
                     {formData.isPaid && (
                       <div className="flex items-center">
@@ -695,6 +835,25 @@ const EventManagement = () => {
                       className={`${currentThemeClasses.bg} ${currentThemeClasses.text} ${currentThemeClasses.inputBorder} shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none ${currentThemeClasses.focusRing}`}
                       type="tel" placeholder="Organizer's phone"
                     />
+                  </div>
+
+                  {/* New Fields for Participant Limit and Duty Leave */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className={`block text-sm font-bold mb-2 ${currentThemeClasses.text}`} htmlFor="participantLimit">Participant Limit</label>
+                      <input
+                        id="participantLimit" name="participantLimit" value={formData.participantLimit} onChange={handleInputChange}
+                        className={`${currentThemeClasses.bg} ${currentThemeClasses.text} ${currentThemeClasses.inputBorder} shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none ${currentThemeClasses.focusRing}`}
+                        type="number" min="0" placeholder="Unlimited"
+                      />
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        id="allowDutyLeave" name="allowDutyLeave" type="checkbox" checked={formData.allowDutyLeave} onChange={handleInputChange}
+                        className={`mr-2 h-5 w-5 text-blue-600 rounded ${currentThemeClasses.focusRing}`}
+                      />
+                      <label className={`text-sm font-bold ${currentThemeClasses.text}`} htmlFor="allowDutyLeave">Allow Duty Leave?</label>
+                    </div>
                   </div>
 
                   {/* File Uploads */}
@@ -774,7 +933,7 @@ const EventManagement = () => {
                   <img src={viewingMedia.url} alt="Event Media" className="max-w-full max-h-[70vh] mx-auto object-contain" />
                 ) : (
                   <video controls width="640" height="360" className="max-w-full mx-auto">
-                    <source src={viewingMedia.url} type="video/mp4" /> {/* Adjust type if needed */}
+                    <source src={viewingMedia.url} type="video/mp4" />
                     Your browser does not support the video tag.
                   </video>
                 )}

@@ -10,7 +10,12 @@ const eventSchema = new mongoose.Schema({
   location: { type: String, trim: true },
   isPaid: { type: Boolean, default: false },
   price: { type: Number, default: 0 },
-
+  participantLimit: { type: Number, default: null, min: 0 },
+  currentApplications: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   // --- Cloudinary File Details ---
   qrCodeImageURL: { type: String },       // URL for QR code uploaded by admin
   qrCodePublicId: { type: String },       // Public ID for QR code on Cloudinary
@@ -26,7 +31,7 @@ const eventSchema = new mongoose.Schema({
   organizerEmail: { type: String, lowercase: true, trim: true }, // Organizer email
   organizerPhone: { type: String, trim: true }, // Organizer phone
   query: { type: String, trim: true }, // Additional query details
-
+  allowDutyLeave: { type: Boolean, default: false },
   // If events are created by registered users (students/admins)
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -42,7 +47,7 @@ const eventSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-eventSchema.pre('save', function(next) {
+eventSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });

@@ -57,6 +57,11 @@ const applicationSchema = new Schema({
     type: Date,
     required: true,
   },
+  eventEndDate:{
+    type: Date,
+    required: true,
+
+  },
   isPaid: {
     type: Boolean,
     default: false,

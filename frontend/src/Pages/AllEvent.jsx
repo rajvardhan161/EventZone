@@ -1,3 +1,4 @@
+// src/pages/EventList.js
 import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,7 +15,7 @@ const EventList = () => {
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'upcoming', 'latest'
+  const [filter, setFilter] = useState('upcoming'); // Default to 'upcoming'
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +29,12 @@ const EventList = () => {
     backgroundColor,
     textColor
   } = currentTheme;
+
+  // Helper to check if an event is in the past
+  const isEventPast = (eventDateString) => {
+    if (!eventDateString) return true; // Treat missing date as past
+    return new Date(eventDateString) < new Date();
+  };
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -48,7 +55,7 @@ const EventList = () => {
         case 'all':
         default:
           // Corrected the API endpoint path here. Assuming it should be /api/user/events
-          url = `${backendUrl}/api/user/user/events`;
+          url = `${backendUrl}/api/user/user/events`; // *** Corrected API endpoint ***
           break;
       }
 
@@ -63,6 +70,7 @@ const EventList = () => {
         setEvents(data);
         setError(null);
       } catch (err) {
+        console.error("Error fetching events:", err); // Log the error for debugging
         setError(err.message);
       } finally {
         setLoading(false);
@@ -70,21 +78,41 @@ const EventList = () => {
     };
 
     fetchEvents();
-  }, [backendUrl, filter]);
+  }, [backendUrl, filter]); // Dependency array includes filter
 
-  const filteredEvents = events
+  const filteredAndSortedEvents = events
     .filter(event =>
       event.eventName.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       const dateA = new Date(a.eventDate);
       const dateB = new Date(b.eventDate);
-      return dateA - dateB;
+
+      // If filter is 'all', sort ascending (upcoming first)
+      if (filter === 'all') {
+        return dateA - dateB;
+      }
+      // For 'upcoming' and 'latest', the API should already handle sorting,
+      // but if not, you might want to adjust this sort logic.
+      // For now, we assume the API sorts them correctly.
+      return 0; // Keep original order if API sorted
     });
 
   const openVideoModal = (videoUrl) => {
-    setSelectedVideoUrl(videoUrl);
-    setIsModalOpen(true);
+    if (videoUrl) {
+      // Handle YouTube URL transformation for embed
+      let embedUrl = videoUrl;
+      if (videoUrl.includes('youtube.com')) {
+        embedUrl = videoUrl.replace('watch?v=', 'embed/');
+        // Handle shortened YouTube URLs like youtu.be/
+        if (videoUrl.includes('youtu.be/')) {
+          const videoId = videoUrl.split('youtu.be/')[1];
+          embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+      }
+      setSelectedVideoUrl(embedUrl);
+      setIsModalOpen(true);
+    }
   };
 
   const closeModal = () => {
@@ -95,22 +123,25 @@ const EventList = () => {
   // === UI ===
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-white text-lg">
-        <span className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full"></span>
-        <p className="ml-4">Loading Events...</p>
+      <div className={`flex justify-center items-center min-h-screen ${backgroundColor} ${textColor} ${fontFamily}`}>
+        <span className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full mr-4"></span>
+        <p className="text-lg">Loading Events...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-red-600 bg-red-50">
-        <div className="text-center p-6 bg-white rounded shadow">
-          <h2 className="text-xl font-semibold mb-2">Error Fetching Events</h2>
-          <p className="mb-4">{error}</p>
+      <div className={`flex justify-center items-center min-h-screen ${backgroundColor} ${textColor} ${fontFamily} p-6`}>
+        <div className={`text-center p-6 rounded-lg shadow-lg ${currentTheme.cardBackgroundColor || 'bg-white'} ${currentTheme.cardTextColor}`}>
+          <h2 className="text-2xl font-bold mb-2">Oops! Something went wrong.</h2>
+          <p className="mb-6 text-gray-700">
+            We couldn't load the event details. Please check your connection or try again later.<br />
+            {error && <span className="text-sm text-red-600 block mt-2">{error}</span>}
+          </p>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded"
             onClick={() => window.location.reload()}
+            className={`px-5 py-2 rounded-lg font-semibold transition-colors ${currentTheme.buttonBackgroundColor || 'bg-blue-600'} ${currentTheme.buttonTextColor || 'text-white'}`}
           >
             Retry
           </button>
@@ -136,15 +167,18 @@ const EventList = () => {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className={`p-3 border rounded shadow-sm w-full md:w-1/3 text-black ${generalTextFont}`}
+            style={{ borderColor: currentTheme.inputBorderColor, color: currentTheme.inputTextColor }} // Apply theme colors
           />
 
           <div className="flex gap-3">
-            {['all', 'upcoming', 'latest'].map(key => (
+            {['upcoming', 'latest','all'].map(key => ( // Reordered to show upcoming first
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-4 py-2 rounded-full transition ${
-                  filter === key ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                className={`px-5 py-2 rounded-full transition font-semibold ${
+                  filter === key
+                    ? `${currentTheme.buttonBackgroundColor || 'bg-blue-600'} ${currentTheme.buttonTextColor || 'text-white'}`
+                    : `${currentTheme.cardBackgroundColor || 'bg-gray-200'} ${currentTheme.cardTextColor || 'text-gray-800'} hover:${currentTheme.hoverAccentColor || 'hover:bg-gray-300'}`
                 }`}
               >
                 {key.charAt(0).toUpperCase() + key.slice(1)}
@@ -154,16 +188,16 @@ const EventList = () => {
         </div>
 
         {/* Events */}
-        {filteredEvents.length === 0 ? (
-          <p className="text-center text-gray-500">No events match your search or filter.</p>
+        {filteredAndSortedEvents.length === 0 ? (
+          <p className={`text-center text-lg py-10 ${textColor}`}>No events match your search or filter.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredEvents.map(event => {
-              const isPast = new Date(event.eventDate) < new Date();
+            {filteredAndSortedEvents.map(event => {
+              const past = isEventPast(event.eventDate);
               return (
                 <div
                   key={event._id}
-                  className={`rounded-lg shadow-lg bg-white text-black p-6 hover:shadow-2xl transition-all duration-300 relative flex flex-col justify-between`}
+                  className={`rounded-lg shadow-xl ${currentTheme.cardBackgroundColor || 'bg-white'} ${currentTheme.cardTextColor} p-6 hover:shadow-2xl transition-all duration-300 relative flex flex-col justify-between`}
                 >
                   <div>
                     {/* Image */}
@@ -175,7 +209,7 @@ const EventList = () => {
                       )}
                     </div>
 
-                    {/* Tags like Media, Arts & Crafts, Technology */}
+                    {/* Tags */}
                     <div className="flex flex-wrap gap-2 mb-2">
                       {event.tags && event.tags.map(tag => (
                         <span key={tag} className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -190,11 +224,11 @@ const EventList = () => {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xl font-bold mb-2 truncate">{event.eventName}</h3>
+                    <h3 className={`text-xl font-bold mb-2 truncate ${sectionTitleColor}`}>{event.eventName}</h3>
 
                     {/* Date */}
-                    <p className="text-sm mb-1">
-                      <FaCalendarAlt className="inline mr-1 text-blue-500" />{' '}
+                    <p className="text-sm mb-1 flex items-center">
+                      <FaCalendarAlt className={`mr-1 ${currentTheme.accentColor || 'text-blue-500'}`} size={18} />{' '}
                       {new Date(event.eventDate).toLocaleString('en-US', {
                         dateStyle: 'long',
                         timeStyle: 'short'
@@ -203,36 +237,37 @@ const EventList = () => {
 
                     {/* Location */}
                     {event.location && (
-                      <p className="text-sm mb-2">
-                        <FaMapMarkerAlt className="inline mr-1 text-red-500" /> {event.location}
+                      <p className="text-sm mb-2 flex items-center">
+                        <FaMapMarkerAlt className="mr-1 text-red-500" size={18} /> {event.location}
                       </p>
                     )}
 
                     {/* Description */}
                     {event.description && (
-                      <p className="text-sm text-gray-700 line-clamp-3 mb-4">
+                      <p className={`text-sm text-gray-700 line-clamp-3 mb-4 ${generalTextFont}`}>
                         {event.description}
                       </p>
                     )}
                   </div>
 
                   {/* Actions and Icons */}
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-300">
                     <div className="flex items-center gap-4">
                       {/* Play Video Icon */}
                       {event.eventVideoURL && (
                         <button
                           onClick={() => openVideoModal(event.eventVideoURL)}
-                          className="text-gray-600 hover:text-blue-600 focus:outline-none"
+                          className={`text-gray-600 hover:${currentTheme.hoverAccentColor || 'text-blue-600'} focus:outline-none`}
+                          aria-label="Watch video"
                         >
                           <FaRegPlayCircle size={24} />
                         </button>
                       )}
                       {/* Paid Icon */}
                       {event.isPaid && (
-                        <div className="text-gray-600 flex items-center">
+                        <div className={`text-gray-700 flex items-center font-medium ${generalTextFont}`}>
                           <FaMoneyBillAlt size={20} className="mr-1 text-yellow-500" />
-                          <span className="font-semibold">Paid</span>
+                          <span>Paid</span>
                         </div>
                       )}
                     </div>
@@ -240,11 +275,13 @@ const EventList = () => {
                     {/* View Details Button */}
                     <Link
                       to={`/events/${event._id}`}
-                      className={`px-4 py-2 text-sm font-semibold text-white rounded transition-colors ${
-                        isPast ? 'bg-gray-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                      className={`px-4 py-2 text-sm font-semibold text-white rounded transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        past
+                          ? `bg-gray-400 cursor-not-allowed`
+                          : `${currentTheme.buttonBackgroundColor || 'bg-indigo-600'} ${currentTheme.buttonTextColor || 'text-white'} ${currentTheme.hoverAccentColor || 'hover:bg-indigo-700'}`
                       }`}
                     >
-                      {isPast ? 'Event Ended' : 'View Details'}
+                      {past ? 'Event Ended' : 'View Details'}
                     </Link>
                   </div>
                 </div>
@@ -259,22 +296,25 @@ const EventList = () => {
         isOpen={isModalOpen}
         onRequestClose={closeModal}
         contentLabel="Event Video"
-        className="ReactModal__Content bg-black p-4 rounded-lg shadow-xl max-w-3xl mx-auto my-10"
-        overlayClassName="ReactModal__Overlay fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+        className={`ReactModal__Content bg-black p-4 rounded-lg shadow-xl max-w-3xl mx-auto my-10 ${currentTheme.modalContentBackgroundColor || ''}`}
+        overlayClassName={`ReactModal__Overlay fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${currentTheme.modalOverlayColor || ''}`}
       >
         <div className="flex justify-end">
-          <button onClick={closeModal} className="text-white text-2xl font-bold mb-4 focus:outline-none">×</button>
+          <button onClick={closeModal} className={`text-white text-3xl font-bold focus:outline-none ${currentTheme.modalCloseButtonColor || ''}`}>×</button>
         </div>
         <div className="aspect-w-16 aspect-h-9">
-          <iframe
-            width="100%"
-            height="100%"
-            src={selectedVideoUrl.replace("watch?v=", "embed/")} // For YouTube videos
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+          {selectedVideoUrl && (
+            <iframe
+              width="100%"
+              height="100%"
+              src={selectedVideoUrl}
+              title="Event Video Player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="rounded-md"
+            ></iframe>
+          )}
         </div>
       </Modal>
     </div>

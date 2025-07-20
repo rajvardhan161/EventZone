@@ -16,6 +16,7 @@ import EventRequestDetailPage from './pages/EventRequestDetailPage';
 import EventManagement from './pages/EventManagement';
 import AdminApplicationsView from './pages/ApplicationsView';
 import AdminEventApplicationsView from './pages/AdminEventApplicationsView';
+import UpcomingEvents from './pages/UpcomingEvents';
 const ThemedAppContent = () => {
   const { currentTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,6 +80,7 @@ const ThemedAppContent = () => {
             <Route path="/event-requests/:requestId" element={<EventRequestDetailPage />} />
             <Route path="/create-event" element={<EventManagement />} /> 
             <Route path="/applications" element={<AdminApplicationsView/>}/>
+            <Route path="/events/upcoming" element={<UpcomingEvents />} />
             <Route path="/events/:eventId/applications" element={<AdminEventApplicationsView />} />
           </Routes>
         </main>

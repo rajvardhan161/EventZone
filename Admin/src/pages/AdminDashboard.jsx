@@ -33,7 +33,7 @@ const AdminDashboard = () => {
     setStatsError(null);   // Clear previous errors
     try {
       // Fetch stats in parallel for efficiency
-      const [summaryRes, userRes, eventRes] = await Promise.all([ // Added eventRes
+      const [summaryRes, userRes, eventRes,upcomingEventsRes] = await Promise.all([ // Added eventRes
         axios.get(`${backendUrl}/api/admin/summary`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -41,6 +41,9 @@ const AdminDashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get(`${backendUrl}/api/admin/count`, { // New endpoint for event count
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${backendUrl}/api/admin/upcoming/count`, { // New endpoint for event count
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -53,6 +56,7 @@ const AdminDashboard = () => {
         rejectedApplications: summaryRes.data.rejectedApplications || 0, // Assign new stat
         totalUsers: userRes.data.totalUsers || 0,
         totalEvents: eventRes.data.totalEvents || 0, // Assign new stat for total events
+        upcomingEventsCount: upcomingEventsRes.data.upcomingEventsCount || 0,
       });
     } catch (error) {
       console.error('Failed to fetch summary stats:', error);
@@ -141,6 +145,10 @@ const AdminDashboard = () => {
       case 'totalEvents': // New case for clicking on total events
         navigate('/create-event'); // Navigate to the events management page
         break;
+      case 'upcomingEventsCount':
+        navigate('/events/upcoming');
+        break;
+
       default:
         break;
     }
@@ -155,6 +163,8 @@ const AdminDashboard = () => {
     rejectedApplications: currentTheme.dangerColor || '#ef4444', // Tailwind red-500
     totalUsers: currentTheme.infoColor || '#6366f1', // Tailwind indigo-500
     totalEvents: currentTheme.secondaryColor || '#64748b', // Tailwind slate-500 as fallback
+    upcomingEventsCount: currentTheme.highlightColor || '#0ea5e9', // Tailwind sky-500 as fallback
+
   };
 
   // Styles for table headers, leveraging theme colors
@@ -273,6 +283,19 @@ const AdminDashboard = () => {
             <p className="text-2xl font-extrabold">{loadingStats ? <FaSpinner className="animate-spin" /> : stats.totalEvents}</p>
             <p className="text-lg font-medium">Total Events</p>
           </div>
+          {/* Upcoming Events Card */}
+          <div
+            className="card-hover-effect"
+            style={getCardStyle(statsCardColors.upcomingEventsCount)}
+            onClick={() => handleCardClick('upcomingEventsCount')}  // Optional: handle click
+          >
+            <FaCalendarAlt className="text-4xl mb-3" />  {/* Reuse Calendar Icon or pick a new one */}
+            <p className="text-2xl font-extrabold">
+              {loadingStats ? <FaSpinner className="animate-spin" /> : stats.upcomingEventsCount}
+            </p>
+            <p className="text-lg font-medium">Upcoming Events</p>
+          </div>
+
         </div>
       )}
 

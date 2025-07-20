@@ -75,6 +75,8 @@ const uploadToCloudinary = async (filePath, folder) => {
       organizerEmail,
       organizerPhone,
       query,
+      participantLimit,
+      allowDutyLeave,
     } = req.body;
 
     // Create the event object
@@ -87,6 +89,8 @@ const uploadToCloudinary = async (filePath, folder) => {
       location,
       isPaid: isPaid === 'true', // Ensure boolean conversion if sent as string
       price: price ? parseFloat(price) : 0, // Ensure price is a number
+      participantLimit: participantLimit ? parseInt(participantLimit) : null,
+      allowDutyLeave: allowDutyLeave === 'true',
       qrCodeImageURL,
       eventImageURL,
       eventVideoURL,
@@ -94,6 +98,7 @@ const uploadToCloudinary = async (filePath, folder) => {
       organizerEmail,
       organizerPhone,
       query,
+      
       // If you have authenticated users and want to link the creator:
       // createdBy: req.user.id, // Assuming req.user is populated by auth middleware
     });

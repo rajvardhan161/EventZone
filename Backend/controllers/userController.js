@@ -511,7 +511,6 @@ const getUpcomingEvents = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch upcoming events', error: error.message });
   }
 };
-
 const getLatestEvents = async (req, res) => {
   try {
     const latestEvents = await EventModel.find().sort({ _id: -1 });
@@ -536,61 +535,31 @@ const getEventById = async (req, res) => {
 };
 
 
-
 const applyForEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const userId = req.user.userId;
 
-    if (!eventId) {
-      return res.status(400).json({ message: 'Event ID is required.' });
-    }
-
-    // Check if user already applied
-    const existing = await ApplicationModel.findOne({ eventId, userId });
-    if (existing) {
-      return res.status(409).json({ message: 'You have already applied for this event.' });
-    }
-
-    // Fetch event details
     const event = await EventModel.findById(eventId);
     if (!event) {
       return res.status(404).json({ message: 'Event not found.' });
     }
 
-    // Fetch user details
-    const user = await userModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
-
-    // Default to user's profile photo
-    let profilePhotoURL = user.profile_photo;
-
-    // Declare payment screenshot fields
-    let paymentScreenshotURL = null;
-    let paymentScreenshotPublicId = null;
-
-    // Upload new payment screenshot if provided
-    if (req.file && req.file.path) {
-      try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: `event-applications/${eventId}/payment-screenshots`,
-          resource_type: 'image',
-        });
-        paymentScreenshotURL = result.secure_url;
-        paymentScreenshotPublicId = result.public_id;
-      } catch (err) {
-        console.error('Cloudinary upload error:', err);
-        return res.status(500).json({ message: 'Failed to upload payment screenshot.' });
+    // Participant limit check
+    if (event.participantLimit !== null && event.participantLimit !== undefined && event.participantLimit >= 0) {
+      if (event.currentApplications >= event.participantLimit) {
+        return res.status(409).json({ message: 'This event is currently full. You cannot apply at this time.' });
       }
     }
 
-    const isFree = event.price === 0;
-    const isPaid = !isFree;
-    const paymentStatus = isFree ? 'Verified' : 'Unverified';
+    // Check for existing application
+    const existingApplication = await ApplicationModel.findOne({ eventId, userId });
+    if (existingApplication) {
+      return res.status(409).json({ message: 'You have already applied for this event.' });
+    }
 
-    // Create application
+    const user = await userModel.findById(userId);
+
     const newApplication = new ApplicationModel({
       eventId,
       userId,
@@ -599,27 +568,30 @@ const applyForEvent = async (req, res) => {
       gender: user.gender,
       phone_no: user.phone_no,
       course: user.course,
-      profile_photo: profilePhotoURL,
+      profile_photo: user.profile_photo,
       eventName: event.eventName,
       eventDate: event.eventDate,
-      isPaid,
+      eventEndDate:event.eventEndDate,
+      isPaid: event.price > 0,
       price: event.price,
       eventImageURL: event.eventImageURL,
-      eventImagePublicId: event.eventImagePublicId,
       qrCodeImageURL: event.qrCodeImageURL || null,
-      qrCodePublicId: event.qrCodePublicId || null,
-      paymentScreenshotURL,
-      paymentScreenshotPublicId,
-      paymentStatus,
+      paymentStatus: event.price === 0 ? 'Verified' : 'Unverified',
       status: 'Pending',
       notes: req.body.notes || ''
     });
 
     await newApplication.save();
 
+    await EventModel.findByIdAndUpdate(
+      eventId,
+      { $inc: { currentApplications: 1 } },
+      { new: true }
+    );
+
     res.status(201).json({
       message: 'Application submitted successfully!',
-      application: newApplication,
+      application: newApplication
     });
 
   } catch (error) {
@@ -627,6 +599,7 @@ const applyForEvent = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong while applying for the event.' });
   }
 };
+
 
 
 // GET /api/user/events/:eventId/details
@@ -704,7 +677,123 @@ const getUserInquiries = async (req, res) => {
   }
 };
 
+
+const getApplications = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required. User ID not found.' });
+    }
+
+    // Fetch applications sorted by event date (ascending)
+    const applications = await ApplicationModel.find({ userId }).sort({ eventDate: 1 });
+
+    // Count total applications
+    const totalApplications = applications.length;
+
+    res.status(200).json({
+      totalApplications,
+      applications: applications.map(app => ({
+        applicationId: app._id,
+        eventName: app.eventName,
+        eventDate: app.eventDate,
+        status: app.status,
+        paymentStatus: app.paymentStatus,
+        appliedAt: app.createdAt,
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error fetching user applications:', error);
+    res.status(500).json({ message: 'Failed to fetch your applications.', error: error.message });
+  }
+};
+
+const getSpecificApplication = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { applicationId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required. User ID not found.' });
+    }
+
+    const application = await ApplicationModel.findOne({ _id: applicationId, userId: userId })
+      .populate('eventId')
+      .lean();
+
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found or you do not have access to it.' });
+    }
+
+    const responseData = {
+      _id: application._id,
+      userId: application.userId,
+      userName: application.userName,
+      userEmail: application.userEmail,
+      gender: application.gender,
+      phone_no: application.phone_no,
+      course: application.course,
+      profile_photo: application.profile_photo,
+      eventName: application.eventName || (application.eventId ? application.eventId.name : 'N/A'),
+      eventDate: application.eventDate || (application.eventId ? application.eventId.startDate : 'N/A'),
+      eventEndDate:application.eventEndDate || (application.eventId ? application.eventId.endDate: 'N/A'),
+      
+      isPaid: application.isPaid,
+      price: application.price,
+      eventImageURL: application.eventImageURL,
+      eventImagePublicId: application.eventImagePublicId,
+      qrCodeImageURL: application.qrCodeImageURL,
+      qrCodePublicId: application.qrCodePublicId,
+      status: application.status,
+      paymentScreenshotURL: application.paymentScreenshotURL,
+      paymentStatus: application.paymentStatus,
+      notes: application.notes,
+      applicationDate: application.applicationDate,
+      createdAt: application.createdAt,
+      updatedAt: application.updatedAt,
+      __v: application.__v,
+      eventDetails: application.eventId ? {
+        eventId: application.eventId._id,
+        name: application.eventId.name,
+        description: application.eventId.description,
+        startDate: application.eventId.startDate,
+        endDate: application.eventId.endDate,
+        location: application.eventId.location,
+        eventImageURL: application.eventId.eventImageURL,
+      } : null,
+    };
+
+    res.status(200).json(responseData);
+
+  } catch (error) {
+    console.error('Error fetching specific application:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid Application ID format.' });
+    }
+    res.status(500).json({ message: 'Failed to fetch application details.', error: error.message });
+  }
+};
+
+const getUserUpcomingApplications = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const now = new Date();
+
+    const upcomingApplications = await ApplicationModel.find({
+      userId,
+      eventDate: { $gte: now }
+    }).sort({ eventDate: 1 });
+
+    res.status(200).json({ upcomingApplications });
+  } catch (error) {
+    console.error('Error fetching user upcoming applications:', error);
+    res.status(500).json({ message: 'Failed to fetch upcoming events.' });
+  }
+};
+
 export {
   signup, requestOtp, verifyOtp, login, getProfile, updateProfile, subscribe, unsubscribe,
   getAllEvents, getEventById, getUpcomingEvents, getLatestEvents,    applyForEvent,getEventAndUserDetails,getUserApplications,getUserInquiries,
+  getApplications,getSpecificApplication,getUserUpcomingApplications,
 };

@@ -671,8 +671,42 @@ const initiateRefund = async (req, res) => {
   }
 };
 
+
+const getUpcomingEvents = async (req, res) => {
+  try {
+    const today = new Date();
+
+    const upcomingEvents = await EventModel.find({
+      eventDate: { $gte: today }
+    }).sort({ eventDate: 1 }); // Earliest first
+
+    res.json({ upcomingEvents });
+  } catch (error) {
+    console.error('Error fetching upcoming events:', error);
+    res.status(500).json({ message: 'Failed to fetch upcoming events.' });
+  }
+};
+
+
+
+const getUpcomingEventsCount = async (req, res) => {
+  try {
+    const now = new Date();
+
+    const count = await EventModel.countDocuments({ eventDate: { $gte: now } });
+
+    res.status(200).json({ upcomingEventsCount: count });
+  } catch (error) {
+    console.error('Error fetching upcoming events count:', error);
+    res.status(500).json({
+      message: 'Failed to fetch upcoming events count',
+      error: error.message,
+    });
+  }
+};
+
 export {loginAdmin,getAllUsers,getUserById,updateUserRole,toggleUserBlock,deleteUser,
     adminToggleSubscription,updateApplicationStatus,getApplicationsByEvent,getApplications,getApplicationSummary,
   updateApplicationStatuss,getRecentApplications,getUserCount,updatePaymentStatus,getEventCount,getApplicationStats,
-  bulkUpdateApplicationStatus,initiateRefund,
+  bulkUpdateApplicationStatus,initiateRefund,getUpcomingEventsCount,getUpcomingEvents,
 }

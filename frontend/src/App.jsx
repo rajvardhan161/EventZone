@@ -16,6 +16,8 @@ import { ToastContainer } from 'react-toastify';
 import EventDetails from './Pages/EventDetails';
 import ApplyEvent from './Pages/ApplyEvent';
 import InquiryDetail from './Pages/InquiryDetail';
+import UserApplicationsPage from './Pages/UserApplicationsPage';
+import ApplicationDetails from './Pages/ApplicationDetails';
 
 const ThemedAppContent = () => {
   const { currentTheme } = useTheme();
@@ -48,6 +50,8 @@ const ThemedAppContent = () => {
         <Route path="/events/:eventId" element={<EventDetails />} />
         <Route path='/events/:eventId/apply' element={<ApplyEvent/>}/>
         <Route path='/support/inquiries/:inquiryId' element={<InquiryDetail/>}/>
+        <Route path='/applications' element={<UserApplicationsPage/>}/>
+        <Route path="/applications/:applicationId" element={<ApplicationDetails />} />
         <Route path="*" element={<div className="p-4">404 - Page Not Found</div>} />
       </Routes>
       <Footer/>

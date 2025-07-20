@@ -16,6 +16,7 @@ const colorPalettes = {
         footerBg: '#f8f9fa',      // Light Gray footer background
         footerLink: '#007bff',    // Primary Blue for footer links
         testimonialBg: '#f8f9fa', // Light Gray for testimonials
+        cardBgColor: '#FFFFFF',
     },
     darkNavy: {
         primary: '#00bfff',       // Bright Cyan/Sky Blue
@@ -27,6 +28,7 @@ const colorPalettes = {
         hoverSecondary: '#2e52a3',
         footerBg: '#1c253f',
         footerLink: '#8ab4f8',
+         cardBgColor: '#FFFFFF', 
         testimonialBg: '#1c253f',
     },
     // Add more themes here as needed (e.g., 'dark', 'emerald', 'rose')

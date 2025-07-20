@@ -71,21 +71,59 @@ const submitInquiry = async (req, res) => {
 
     // Send email notification
     const mailOptions = {
-      from: `"New Inquiry from ${firstName} ${lastName}" <${MY_DOMAIN_EMAIL}>`,
-      to: MY_DOMAIN_EMAIL,
-      subject: `New Inquiry Received - ${firstName} ${lastName}`,
-      html: `
-        <h2>New Inquiry Received</h2>
-        <p><strong>First Name:</strong> ${firstName}</p>
-        <p><strong>Last Name:</strong> ${lastName}</p>
-        <p><strong>Student ID:</strong> ${student_id}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Problem Description:</strong> ${query}</p>
-        <p><small>Database ID: ${savedInquiry._id}</small></p>
-        <p><small>Submitted at: ${savedInquiry.createdAt.toLocaleString()}</small></p>
-      `,
-    };
+  from: `"New Inquiry from ${firstName} ${lastName}" <${MY_DOMAIN_EMAIL}>`,
+  to: MY_DOMAIN_EMAIL,
+  subject: `New Inquiry Received - ${firstName} ${lastName}`,
+  html: `
+    <div style="
+      max-width: 600px;
+      margin: 20px auto;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    ">
+      <div style="
+        background-color: #4F46E5;
+        color: #ffffff;
+        padding: 20px;
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+      ">
+        📩 New Inquiry Received
+      </div>
+      <div style="
+        padding: 20px;
+        color: #333333;
+        line-height: 1.6;
+      ">
+        <p><strong style="color: #4F46E5;">First Name:</strong> ${firstName}</p>
+        <p><strong style="color: #4F46E5;">Last Name:</strong> ${lastName}</p>
+        <p><strong style="color: #4F46E5;">Student ID:</strong> ${student_id}</p>
+        <p><strong style="color: #4F46E5;">Email:</strong> ${email}</p>
+        <p><strong style="color: #4F46E5;">Phone:</strong> ${phone}</p>
+        <p><strong style="color: #4F46E5;">Problem Description:</strong></p>
+        <div style="
+          background-color: #f9f9f9;
+          padding: 10px 15px;
+          border-left: 4px solid #4F46E5;
+          font-style: italic;
+        ">
+          ${query}
+        </div>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+        <p style="font-size: 12px; color: #777777;">
+          Database ID: ${savedInquiry._id}<br>
+          Submitted at: ${savedInquiry.createdAt.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  `,
+};
+
 
     await sendEmail(mailOptions);
     res.status(201).json({ message: 'Inquiry submitted and email sent successfully!' });
