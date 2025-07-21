@@ -17,7 +17,8 @@ import EventDetails from './Pages/EventDetails';
 import ApplyEvent from './Pages/ApplyEvent';
 import InquiryDetail from './Pages/InquiryDetail';
 import UserApplicationsPage from './Pages/UserApplicationsPage';
-import ApplicationDetails from './Pages/ApplicationDetails';
+import ApplicationDetails from './Pages/ApplicationDetails'; 
+import PublicNoticesListView from './Pages/PublicNoticesListView';
 
 const ThemedAppContent = () => {
   const { currentTheme } = useTheme();
@@ -52,6 +53,8 @@ const ThemedAppContent = () => {
         <Route path='/support/inquiries/:inquiryId' element={<InquiryDetail/>}/>
         <Route path='/applications' element={<UserApplicationsPage/>}/>
         <Route path="/applications/:applicationId" element={<ApplicationDetails />} />
+        
+        <Route path="/announcements" element={<PublicNoticesListView />} /> 
         <Route path="*" element={<div className="p-4">404 - Page Not Found</div>} />
       </Routes>
       <Footer/>

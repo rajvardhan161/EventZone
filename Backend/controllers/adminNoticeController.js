@@ -1,0 +1,152 @@
+import mongoose from 'mongoose';
+import PublicNoticeModel from "../Models/PublicNoticeModel.js";
+
+// ✅ Create a new public notice (Admin only)
+const createPublicNotice = async (req, res) => {
+  const { title, message, expiresAt, link, linkText } = req.body;
+
+  if (!title || !message) {
+    return res.status(400).json({ message: 'Title and message are required.' });
+  }
+
+  try {
+    const adminId = req.user.userId;  // ✅ From token (should be ObjectId string)
+
+    const newNotice = new PublicNoticeModel({
+      title,
+      message, 
+sentByAdminId:req.user.email  
+,   // ✅ Must be ObjectId or valid string
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      link: link?.trim() || null,
+      linkText: linkText?.trim() || null,
+    });
+
+    const savedNotice = await newNotice.save();
+
+    const populatedNotice = await PublicNoticeModel.findById(savedNotice._id)
+                                                   .populate('sentByAdminId', 'username');
+
+    res.status(201).json({
+      message: 'Public notice created successfully!',
+      notice: populatedNotice
+    });
+
+  } catch (error) {
+    console.error('Error creating public notice:', error);
+    res.status(500).json({ message: error.message || 'Failed to create public notice.' });
+  }
+};
+
+
+
+// ✅ Get all public notices (Admin View)
+const getAllPublicNotices = async (req, res) => {
+  try {
+    const notices = await PublicNoticeModel.find()
+                                           .populate('sentByAdminId', 'username')
+                                           .sort({ createdAt: -1 });
+
+    res.status(200).json(notices);
+
+  } catch (error) {
+    console.error('Error fetching admin notices:', error);
+    res.status(500).json({ message: 'Failed to fetch notices.' });
+  }
+};
+
+
+
+// ✅ Get active public notices (User View)
+const getActivePublicNotices = async (req, res) => {
+  try {
+    const now = new Date();
+
+    const notices = await PublicNoticeModel.find({
+      $or: [
+        { expiresAt: null },
+        { expiresAt: { $gte: now } }
+      ]
+    })
+    .populate('sentByAdminId', 'username')
+    .sort({ createdAt: -1 });
+
+    res.status(200).json(notices);
+
+  } catch (error) {
+    console.error('Error fetching user notices:', error);
+    res.status(500).json({ message: 'Failed to fetch public notices.' });
+  }
+};
+
+
+  const getNoticeById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const notice = await PublicNoticeModel.findById(id).populate('sentByAdminId', 'username');
+    if (!notice) {
+      return res.status(404).json({ message: 'Notice not found.' });
+    }
+    res.json(notice);
+  } catch (error) {
+    console.error('Error fetching notice:', error);
+    res.status(500).json({ message: 'Server error while fetching notice.' });
+  }
+};
+
+// Update Notice by ID
+  const updateNotice = async (req, res) => {
+  const { id } = req.params;
+  const { title, message, expiresAt, link, linkText } = req.body;
+
+  if (!title || !message) {
+    return res.status(400).json({ message: 'Title and message are required.' });
+  }
+
+  try {
+    const notice = await PublicNoticeModel.findById(id);
+
+    if (!notice) {
+      return res.status(404).json({ message: 'Notice not found.' });
+    }
+
+    notice.title = title;
+    notice.message = message;
+    notice.expiresAt = expiresAt || null;
+    notice.link = link || '';
+    notice.linkText = linkText || '';
+
+    await notice.save();
+
+    res.json({ message: 'Notice updated successfully.', notice });
+  } catch (error) {
+    console.error('Error updating notice:', error);
+    res.status(500).json({ message: 'Server error while updating notice.' });
+  }
+};
+
+const deleteNotice = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const notice = await PublicNoticeModel.findById(id);
+
+    if (!notice) {
+      return res.status(404).json({ message: 'Notice not found.' });
+    }
+
+    await notice.deleteOne();
+
+    res.json({ message: 'Notice deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting notice:', error);
+    res.status(500).json({ message: 'Server error while deleting notice.' });
+  }
+};
+
+export {
+  createPublicNotice,deleteNotice,
+  getAllPublicNotices,updateNotice,
+  getActivePublicNotices,getNoticeById,
+};

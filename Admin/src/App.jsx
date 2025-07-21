@@ -17,6 +17,9 @@ import EventManagement from './pages/EventManagement';
 import AdminApplicationsView from './pages/ApplicationsView';
 import AdminEventApplicationsView from './pages/AdminEventApplicationsView';
 import UpcomingEvents from './pages/UpcomingEvents';
+import CreateNoticePage from './pages/CreateNoticePage';
+import AllNoticesPage from './pages/AllNoticesPage';
+import EditNoticePage from './pages/EditNoticePage';
 const ThemedAppContent = () => {
   const { currentTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -82,6 +85,9 @@ const ThemedAppContent = () => {
             <Route path="/applications" element={<AdminApplicationsView/>}/>
             <Route path="/events/upcoming" element={<UpcomingEvents />} />
             <Route path="/events/:eventId/applications" element={<AdminEventApplicationsView />} />
+            <Route path="/notices/create" element={<CreateNoticePage />} />
+            <Route path="/notices" element={<AllNoticesPage />} />
+            <Route path="notices/edit/:id" element={<EditNoticePage />} />
           </Routes>
         </main>
       </div>

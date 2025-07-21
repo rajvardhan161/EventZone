@@ -46,8 +46,8 @@ const Sidebar = () => {
     { to: '/event-requests', icon: assets.add_icon, label: 'event requests' },
     { to: '/create-event', icon: assets.people_icon, label: 'create event' },
     { to: '/applications', icon: assets.list_icon, label: 'applications List' },
-    { to: '/purchases', icon: assets.list_icon, label: 'Purchases' },
-    { to: '/staff-list', icon: assets.list_icon, label: 'Staff List' },
+    { to: '/notices/create', icon: assets.list_icon, label: 'notices create' },
+    { to: '/notices', icon: assets.list_icon, label: 'All notices' },
     { to: '/AllUser', icon: assets.list_icon, label: 'User' },
   ];
 
