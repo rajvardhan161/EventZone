@@ -20,6 +20,14 @@ import UpcomingEvents from './pages/UpcomingEvents';
 import CreateNoticePage from './pages/CreateNoticePage';
 import AllNoticesPage from './pages/AllNoticesPage';
 import EditNoticePage from './pages/EditNoticePage';
+import FutureEvent from './pages/FutureEvent';
+import FutureEventsList from './pages/FutureList';
+import UploadImageHighlights from './pages/highlight';
+import ManageHeroSlides from './pages/ManageHeroSlides';
+import OrganizerPage from './pages/OrganizerPage';
+import CreateOrganizerForm from './pages/StaffForm';
+import AllOrganizers from './pages/Allstaff';
+import OrganizerDashboard from './pages/staff/OrganizerDashboard';
 const ThemedAppContent = () => {
   const { currentTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -88,6 +96,14 @@ const ThemedAppContent = () => {
             <Route path="/notices/create" element={<CreateNoticePage />} />
             <Route path="/notices" element={<AllNoticesPage />} />
             <Route path="notices/edit/:id" element={<EditNoticePage />} />
+            <Route path="/Future" element={<FutureEvent />}/>
+            <Route path="/FutureList" element={<FutureEventsList />}/>
+            <Route path='/highlight' element={<UploadImageHighlights />}/>
+            <Route path="/manage-hero" element={<ManageHeroSlides />} />
+            <Route path="/organizers" element={<OrganizerPage />} />
+            <Route path="/create" element={<CreateOrganizerForm />} />
+            <Route path='/AllOrganizer' element={<AllOrganizers/>}/>
+            <Route path='/Dashboard' element={<OrganizerDashboard/>}/>
           </Routes>
         </main>
       </div>

@@ -10,6 +10,8 @@ import crypto from 'crypto'; // For generating subscription tokens
 import EventModel from '../Models/EventModel.js';
 import ApplicationModel from '../Models/Application.js';
 import InquiryModel from '../Models/InquiryModel.js';
+import HeroModel from '../Models/HeroSlide.js';
+import OrganizerModel from '../Models/organizerModel.js';
 
 dotenv.config();
 
@@ -792,8 +794,27 @@ const getUserUpcomingApplications = async (req, res) => {
   }
 };
 
+const getAllHeroSlides = async (req, res) => {
+  try {
+    const slides = await HeroModel.find().sort({ createdAt: -1 }); // latest first
+    res.status(200).json({ slides });
+  } catch (error) {
+    console.error('Error fetching hero slides:', error);
+    res.status(500).json({ message: 'Server error while fetching slides.' });
+  }
+};
+
+const getAllOrganizersPublic = async (req, res) => {
+  try {
+    const organizers = await OrganizerModel.find().sort({ createdAt: -1 }); // Newest first
+    res.status(200).json(organizers);
+  } catch (error) {
+    console.error('Error fetching public organizers:', error);
+    res.status(500).json({ message: 'Failed to fetch organizers.' });
+  }
+};
 export {
   signup, requestOtp, verifyOtp, login, getProfile, updateProfile, subscribe, unsubscribe,
   getAllEvents, getEventById, getUpcomingEvents, getLatestEvents,    applyForEvent,getEventAndUserDetails,getUserApplications,getUserInquiries,
-  getApplications,getSpecificApplication,getUserUpcomingApplications,
+  getApplications,getSpecificApplication,getUserUpcomingApplications,getAllHeroSlides,getAllOrganizersPublic,
 };

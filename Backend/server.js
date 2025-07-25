@@ -8,6 +8,7 @@ import adminRouter from './routes/adminRoute.js'
 import eventrouter from './routes/eventRoutes.js'
 import cloudinaryConfig from './config/cloudinaryConfig.js';
 import noticeRouter from './routes/notice.js'
+import organizerRoutes from './routes/organizerRoutes.js'
 //app config
 const app= express()
 const port=process.env.PORT || 4000
@@ -22,6 +23,7 @@ app.use('/api/user', userrouter)
 app.use('/api/event/',eventrouter)
 app.use('/api/admin', adminRouter);
 app.use('/api/notice', noticeRouter)
+app.use('/api/organizer', organizerRoutes)
 app.get('/',(req,res)=>{
     res.send('api working')
 

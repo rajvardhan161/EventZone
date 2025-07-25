@@ -1,16 +1,18 @@
        // Import Footer
  
 import Header from "../component/Header";
-import ImageGallery from "../component/ImageGallery";
-import MainContent from "../component/MainContent";
+
+import FutureEventsView from "./EventFutre";
+import FeaturedOrganizers from "./FeaturedOrganizers";
+import PublicHighlights from "./PublicHighlights";
 
 const Home = () => {
   return (
     <div className="font-sans antialiased"> {/* Apply a base font */}
     <Header/>
-      <MainContent />
-      <ImageGallery />
-     
+      <FutureEventsView/>
+      <PublicHighlights/>
+      <FeaturedOrganizers/>
     </div>
   );
 };

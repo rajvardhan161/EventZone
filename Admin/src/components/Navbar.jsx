@@ -1,17 +1,44 @@
-// src/components/Navbar.jsx
 import React, { useContext, useRef, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AdminContext } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext';
 
+// Helper to judge if color is very light for border
+const isLightColor = (hex) => {
+  if (!hex || !hex.startsWith('#') || hex.length !== 7) return false;
+  const r = parseInt(hex.substr(1, 2), 16);
+  const g = parseInt(hex.substr(3, 2), 16);
+  const b = parseInt(hex.substr(5, 2), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 220;
+};
+
+const ColorPicker = ({ title, colors, selectedColor, onColorChange, theme }) => (
+  <div className="mb-3">
+    <h4 className="text-sm font-semibold mb-2" style={{ color: theme.textColor }}>{title}</h4>
+    <div className="flex flex-wrap gap-2">
+      {colors.map((color) => (
+        <button
+          key={color}
+          onClick={() => onColorChange(color)}
+          className={
+            `w-6 h-6 rounded-full cursor-pointer transition-transform transform hover:scale-110
+             ${selectedColor === color ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`
+          }
+          style={{
+            backgroundColor: color,
+            border: isLightColor(color) ? '1px solid #ccc' : 'none'
+          }}
+          title={color}
+        />
+      ))}
+    </div>
+  </div>
+);
+
 const Navbar = ({ onToggleSidebar }) => {
-  // Only get Admin-specific context
   const { token, setToken } = useContext(AdminContext);
-
   const navigate = useNavigate();
-
-  // Theme context hooks
   const {
     currentTheme,
     themeOptions,
@@ -22,290 +49,164 @@ const Navbar = ({ onToggleSidebar }) => {
     resetTheme,
   } = useTheme();
 
-  // Admin menu states and refs
-  const [showAdminMenu1, setShowAdminMenu1] = useState(false);
-  const [showAdminMenu2, setShowAdminMenu2] = useState(false);
-  const [showAdminMenu3, setShowAdminMenu3] = useState(false);
+  // The key is "organizer" (not "organizerToken") in your storage as per your screenshot
+  const organizerToken = localStorage.getItem('organizer');
+  const isAdmin = !!token;
+  const isOrganizer = !!organizerToken;
 
+  const [showAdminMenu1, setShowAdminMenu1] = useState(false);
   const themeButtonRef = useRef(null);
   const themePanelRef = useRef(null);
   const adminMenu1ButtonRef = useRef(null);
   const adminMenu1PanelRef = useRef(null);
-  const adminMenu2ButtonRef = useRef(null);
-  const adminMenu2PanelRef = useRef(null);
-  const adminMenu3ButtonRef = useRef(null);
-  const adminMenu3PanelRef = useRef(null);
 
-  // Define admin links here. These will be rendered conditionally.
-  // IMPORTANT: If you don't want any dropdown menus in the navbar,
-  // you can either remove the `adminLinks` array, or set it to an empty array `[]`.
-  // If you remove it, the corresponding `adminMenuXLinks` variables below
-  // will also be undefined, and the menu buttons won't render.
- 
-  const isAdmin = !!token; // User is an admin if a token exists in AdminContext
-
-  // Click Outside Handlers
   useEffect(() => {
     const handleClickOutside = (e) => {
-      // Theme panel handler
       if (
         showThemeOptions &&
         !themeButtonRef.current?.contains(e.target) &&
         !themePanelRef.current?.contains(e.target)
       )
         setShowThemeOptions(false);
-
-      // Admin menu handlers
       if (
         showAdminMenu1 &&
         !adminMenu1ButtonRef.current?.contains(e.target) &&
         !adminMenu1PanelRef.current?.contains(e.target)
       )
         setShowAdminMenu1(false);
-      if (
-        showAdminMenu2 &&
-        !adminMenu2ButtonRef.current?.contains(e.target) &&
-        !adminMenu2PanelRef.current?.contains(e.target)
-      )
-        setShowAdminMenu2(false);
-      if (
-        showAdminMenu3 &&
-        !adminMenu3ButtonRef.current?.contains(e.target) &&
-        !adminMenu3PanelRef.current?.contains(e.target)
-      )
-        setShowAdminMenu3(false);
     };
-
-    if (showThemeOptions || showAdminMenu1 || showAdminMenu2 || showAdminMenu3) {
+    if (showThemeOptions || showAdminMenu1) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [
-    showThemeOptions,
-    showAdminMenu1,
-    showAdminMenu2,
-    showAdminMenu3,
-    setShowThemeOptions,
-    setShowAdminMenu1,
-    setShowAdminMenu2,
-    setShowAdminMenu3,
-  ]);
-
-  const closeAllMenus = () => {
-    setShowThemeOptions(false);
-    setShowAdminMenu1(false);
-    setShowAdminMenu2(false);
-    setShowAdminMenu3(false);
-  };
-
-  const toggleTheme = () => {
-    const newState = !showThemeOptions;
-    closeAllMenus();
-    setShowThemeOptions(newState);
-  };
-
-  const toggleAdminMenu1 = () => {
-    const newState = !showAdminMenu1;
-    closeAllMenus();
-    setShowAdminMenu1(newState);
-  };
-
-  const toggleAdminMenu2 = () => {
-    const newState = !showAdminMenu2;
-    closeAllMenus();
-    setShowAdminMenu2(newState);
-  };
-
-  const toggleAdminMenu3 = () => {
-    const newState = !showAdminMenu3;
-    closeAllMenus();
-    setShowAdminMenu3(newState);
-  };
+  }, [showThemeOptions, showAdminMenu1, setShowThemeOptions, setShowAdminMenu1]);
 
   const logout = () => {
     setToken(null);
-    localStorage.removeItem('token');
-    closeAllMenus();
+    localStorage.removeItem('token');       // admin
+    localStorage.removeItem('organizer');
+    localStorage.removeItem('userType');   // organizer
+    localStorage.removeItem('organizerData'); 
+    localStorage.removeItem('appTheme'); 
+    setShowAdminMenu1(false);
     navigate('/');
   };
 
   const dropdownPanelStyle = {
-    color: ['#000000', '#1F2937', '#0F172A'].includes(currentTheme.navbarBgColor)
-      ? '#FFFFFF'
-      : '#1F2937',
     backgroundColor: currentTheme.navbarBgColor || '#FFFFFF',
-    borderColor: currentTheme.textColor === '#FFFFFF' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+    borderColor: currentTheme.textColor === '#FFFFFF'
+      ? 'rgba(255,255,255,0.2)'
+      : 'rgba(0,0,0,0.1)',
   };
 
-  const renderLinks = (links, closeFunction) => (
-    <nav className="py-1">
-      {links.map((l) => (
-        <Link
-          key={l.to}
-          to={l.to}
-          onClick={() => {
-            closeFunction();
-            closeAllMenus();
-          }}
-          className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-150"
-          style={{ color: currentTheme.textColor }}
-        >
-          {l.icon && <img src={l.icon} alt="" className="w-4 h-4 opacity-70" />}
-          {l.label}
-        </Link>
-      ))}
-    </nav>
-  );
+  // Show navbar only for Admin or Organizer
+  if (!isAdmin && !isOrganizer) return null;
 
-  // --- Render ONLY if the user is an Admin ---
-  if (!isAdmin) {
-    return null;
-  }
-
-  /* -------------- JSX -------------- */
   return (
-    // The Navbar itself should be full width.
-    // The main layout in AdminDashboard has the sidebar which pushes content over.
-    // This Navbar needs to sit *above* that layout structure, or be part of a container that allows full width.
-    // For simplicity, we'll keep it as a fixed element at the top.
     <nav
       className="sticky top-0 left-0 right-0 z-50 flex justify-between items-center px-4 sm:px-8 py-1 border-b shadow-md"
       style={{
         backgroundColor: currentTheme.navbarBgColor,
         color: currentTheme.textColor,
-        borderColor: currentTheme.textColor === '#FFFFFF' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+        borderColor: currentTheme.textColor === '#FFFFFF'
+          ? 'rgba(255,255,255,0.2)'
+          : 'rgba(0,0,0,0.1)',
         transition: 'background-color .3s, color .3s, border-color .3s',
       }}
     >
-      {/* ---------- LEFT SECTION ---------- */}
+      {/* LEFT */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Logo */}
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 md:hidden"
+          title="Open Menu"
+        >
+          <img src={assets.menu_icon || '/menu-icon.svg'} alt="Menu" className="w-5 h-5" />
+        </button>
         <img
           className="w-20 md:w-20 cursor-pointer"
-          src={assets.lo || assets.admin_logo || '/placeholder-logo.png'}
+          src={assets.lo || '/logo.png'}
           alt="Logo"
           onClick={() => navigate('/')}
         />
-
-        {/* Admin Label */}
         <p
           className="border px-2 py-0.5 rounded-full text-xs sm:text-sm whitespace-nowrap"
           style={{ borderColor: currentTheme.textColor, color: currentTheme.textColor }}
         >
-          Admin
+          {isAdmin ? 'Admin' : 'Organizer'}
         </p>
       </div>
-
-
-      {/* ---------- RIGHT SECTION ---------- */}
+      {/* RIGHT */}
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Theme Customization Button */}
+        {/* THEME BUTTON */}
         <div className="relative">
           <button
             ref={themeButtonRef}
-            onClick={toggleTheme}
+            onClick={() => setShowThemeOptions(!showThemeOptions)}
             className="p-2 rounded-full hover:bg-black hover:bg-opacity-10 transition duration-200"
             title="Customize Theme"
-            style={{ color: currentTheme.textColor }}
+            aria-haspopup="true"
+            aria-expanded={showThemeOptions}
           >
-            <img src={assets.sky|| '/theme-icon.svg'} alt="Customize Theme" className="w-5 h-5" />
+            <img src={assets.sky || '/theme-icon.svg'} alt="Customize Theme" className="w-5 h-5" />
           </button>
           {showThemeOptions && (
             <div
               ref={themePanelRef}
-              className="absolute top-full right-0 mt-2 w-64 z-50 p-4 rounded-md shadow-xl border"
+              className="absolute top-full right-0 mt-2 w-72 max-h-[70vh] overflow-y-auto z-50 p-4 rounded-md shadow-xl border"
               style={dropdownPanelStyle}
+              role="dialog"
+              aria-label="Theme customization"
             >
-              <div>
-                <p className="text-xs font-semibold mb-1">Text Color:</p>
-                <div className="flex flex-wrap gap-2">
-                  {themeOptions?.textColors?.map((c) => (
-                    <button
-                      key={'text-' + c}
-                      onClick={() => handleTextColorChange(c)}
-                      className={`w-6 h-6 rounded-full border-2 ${
-                        currentTheme.textColor === c
-                          ? 'ring-2 ring-offset-1 ring-current scale-110'
-                          : 'border-gray-400'
-                      }`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold mb-1">Main Background:</p>
-                <div className="flex flex-wrap gap-2">
-                  {themeOptions?.bgColors?.map((c) => (
-                    <button
-                      key={'bg-main-' + c}
-                      onClick={() => handleBgColorChange(c, 'main')}
-                      className={`w-6 h-6 rounded-full border-2 ${
-                        currentTheme.bgColor === c
-                          ? 'ring-2 ring-offset-1 ring-current scale-110'
-                          : 'border-gray-400'
-                      }`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold mb-1">Sidebar Background:</p>
-                <div className="flex flex-wrap gap-2">
-                  {themeOptions?.bgColors?.map((c) => (
-                    <button
-                      key={'bg-sidebar-' + c}
-                      onClick={() => handleBgColorChange(c, 'sidebar')}
-                      className={`w-6 h-6 rounded-full border-2 ${
-                        currentTheme.sidebarBgColor === c
-                          ? 'ring-2 ring-offset-1 ring-current scale-110'
-                          : 'border-gray-400'
-                      }`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold mb-1">Navbar Background:</p>
-                <div className="flex flex-wrap gap-2">
-                  {themeOptions?.bgColors?.map((c) => (
-                    <button
-                      key={'bg-navbar-' + c}
-                      onClick={() => handleBgColorChange(c, 'navbar')}
-                      className={`w-6 h-6 rounded-full border-2 ${
-                        currentTheme.navbarBgColor === c
-                          ? 'ring-2 ring-offset-1 ring-current scale-110'
-                          : 'border-gray-400'
-                      }`}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
+              <h3 className="text-lg font-bold mb-4" style={{ color: currentTheme.textColor }}>
+                Customize Theme
+              </h3>
+              <ColorPicker title="Text Color" colors={themeOptions.textColors}
+                           selectedColor={currentTheme.textColor}
+                           onColorChange={handleTextColorChange} theme={currentTheme} />
+              <ColorPicker title="Background Color" colors={themeOptions.bgColors}
+                           selectedColor={currentTheme.bgColor}
+                           onColorChange={(color) => handleBgColorChange(color, 'main')}
+                           theme={currentTheme} />
+              <ColorPicker title="Sidebar Color" colors={themeOptions.sidebarColors}
+                           selectedColor={currentTheme.sidebarBgColor}
+                           onColorChange={(color) => handleBgColorChange(color, 'sidebar')}
+                           theme={currentTheme} />
+              <ColorPicker title="Navbar Color" colors={themeOptions.navbarColors}
+                           selectedColor={currentTheme.navbarBgColor}
+                           onColorChange={(color) => handleBgColorChange(color, 'navbar')}
+                           theme={currentTheme} />
+              <hr className="my-3" style={{
+                borderColor: currentTheme.textColor === '#FFFFFF'
+                    ? 'rgba(255,255,255,0.2)'
+                    : 'rgba(0,0,0,0.1)'
+              }}/>
               <button
                 onClick={resetTheme}
-                className="text-xs w-full px-2 py-1 rounded border mt-3 hover:bg-black/10"
-                style={{ color: currentTheme.textColor }}
+                className="w-full text-center px-4 py-2 rounded-md text-sm transition hover:opacity-80"
+                style={{
+                  backgroundColor: currentTheme.textColor === '#FFFFFF'
+                    ? 'rgba(255,255,255,0.1)'
+                    : 'rgba(0,0,0,0.05)',
+                  color: currentTheme.textColor,
+                }}
               >
                 Reset to Default
               </button>
             </div>
           )}
         </div>
-
-        {/* Logout Button */}
+        {/* LOGOUT */}
         <button
           onClick={logout}
           className="text-xs sm:text-sm px-4 py-1.5 rounded-full transition"
           style={{
-            backgroundColor:
-              currentTheme.textColor === '#FFFFFF'
-                ? 'rgba(255,255,255,0.8)'
-                : 'rgba(0,0,0,0.6)',
-            color:
-              currentTheme.textColor === '#FFFFFF' ? '#000000' : '#FFFFFF',
+            backgroundColor: currentTheme.textColor === '#FFFFFF'
+              ? 'rgba(255,255,255,0.8)'
+              : 'rgba(0,0,0,0.6)',
+            color: currentTheme.textColor === '#FFFFFF'
+              ? '#000000'
+              : '#FFFFFF',
           }}
         >
           Logout
@@ -316,3 +217,4 @@ const Navbar = ({ onToggleSidebar }) => {
 };
 
 export default Navbar;
+

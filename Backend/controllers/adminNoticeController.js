@@ -1,5 +1,30 @@
 import mongoose from 'mongoose';
 import PublicNoticeModel from "../Models/PublicNoticeModel.js";
+import HeroModel from '../Models/HeroSlide.js';
+import OrganizerModel from '../Models/organizerModel.js';
+import connectCloudinary from '../config/cloudinary.js';
+import cloudinary from '../config/cloudinaryConfig.js';
+import fs from 'fs'; 
+
+const uploadToCloudinary = async (filePath, folder) => {
+  try {
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: folder,
+      resource_type: 'auto', // Automatically detect resource type (image, video, etc.)
+    });
+    return { url: result.secure_url, public_id: result.public_id };
+  } catch (error) {
+    console.error(`Error uploading to Cloudinary (${folder}):`, error);
+    throw error; // Re-throw to be handled by the calling function
+  } finally {
+    // Clean up the temporary file after upload
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error(`Error deleting temporary file ${filePath}:`, err);
+      }
+    });
+  }
+};
 
 // ✅ Create a new public notice (Admin only)
 const createPublicNotice = async (req, res) => {
@@ -145,8 +170,141 @@ const deleteNotice = async (req, res) => {
   }
 };
 
+ 
+const createOrganizer = async (req, res) => {
+  const image = req.file;
+
+  try {
+    const {
+      name,
+      tagline,
+      description,
+      website,
+      contactEmail,
+      events,
+    } = req.body;
+
+    // Validate fields
+    if (!name || !tagline || !description || !website || !contactEmail || !events) {
+      return res.status(400).json({ message: 'All fields are required including events.' });
+    }
+
+    if (!image || !image.path) {
+      return res.status(400).json({ message: 'Image is required.' });
+    }
+
+    // ✅ Upload image to Cloudinary using file path
+    const cloudResult = await uploadToCloudinary(image.path, 'organizers');
+
+    // ✅ Create new organizer document
+    const newOrganizer = new OrganizerModel({
+      name,
+      logoUrl: cloudResult.url,
+      tagline,
+      description,
+      website,
+      contactEmail,
+      events: JSON.parse(events), // parsed array from string
+    });
+
+    await newOrganizer.save();
+
+    res.status(201).json({
+      message: 'Organizer created successfully',
+      organizer: newOrganizer,
+    });
+
+  } catch (error) {
+    console.error('Create Organizer Error:', error);
+    res.status(500).json({ message: 'Server error while creating organizer.' });
+  }
+};
+
+
+const getAllOrganizers = async (req, res) => {
+  try {
+    const organizers = await OrganizerModel.find().sort({ createdAt: -1 });
+    res.status(200).json(organizers);
+  } catch (error) {
+    console.error('Fetch Organizers Error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const deleteOrganizer = async (req, res) => {
+  try {
+    const organizerId = req.params.id;
+    const deleted = await OrganizerModel.findByIdAndDelete(organizerId);
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Organizer not found' });
+    }
+
+    res.status(200).json({ message: 'Organizer deleted successfully' });
+  } catch (error) {
+    console.error('Delete Organizer Error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const updateOrganizer = async (req, res) => {
+  try {
+    const organizerId = req.params.id;
+    const { name, tagline, description, website, contactEmail } = req.body;
+    const events = JSON.parse(req.body.events);
+
+    const updateData = {
+      name,
+      tagline,
+      description,
+      website,
+      contactEmail,
+      events,
+    };
+
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'image',
+            folder: 'organizers',
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
+
+      updateData.logoUrl = uploadResult.secure_url;
+    }
+
+    const updatedOrganizer = await OrganizerModel.findByIdAndUpdate(
+      organizerId,
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedOrganizer) {
+      return res.status(404).json({ message: 'Organizer not found' });
+    }
+
+    res.status(200).json({
+      message: 'Organizer updated successfully',
+      organizer: updatedOrganizer,
+    });
+
+  } catch (error) {
+    console.error('Update Organizer Error:', error);
+    res.status(500).json({ message: 'Server error while updating organizer.' });
+  }
+};
+
+
+
 export {
-  createPublicNotice,deleteNotice,
-  getAllPublicNotices,updateNotice,
-  getActivePublicNotices,getNoticeById,
+  createPublicNotice,deleteNotice,createOrganizer,updateOrganizer,
+  getAllPublicNotices,updateNotice,getAllOrganizers,
+  getActivePublicNotices,getNoticeById,deleteOrganizer,
 };

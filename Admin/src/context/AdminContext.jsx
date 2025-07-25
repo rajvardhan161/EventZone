@@ -6,7 +6,7 @@ export const AdminContext = createContext()
 
 const AdminContextProvider = (props) =>{
     const [token, setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'):'')
-   
+   const [organizer, setOrganizer] = useState(localStorage.getItem('organizer')?localStorage.getItem('organizer'):'')
     const [dashData, setDashData] = useState(false)
     
 
@@ -20,7 +20,7 @@ const AdminContextProvider = (props) =>{
     
 
     const value = {
-        token,setToken,dashData,setDashData,backendUrl,
+        token,setToken,dashData,setDashData,backendUrl,setOrganizer,organizer,
     }
     return (
         <AdminContext.Provider value={value}>

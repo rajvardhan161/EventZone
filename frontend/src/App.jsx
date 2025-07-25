@@ -52,9 +52,10 @@ const ThemedAppContent = () => {
         <Route path='/events/:eventId/apply' element={<ApplyEvent/>}/>
         <Route path='/support/inquiries/:inquiryId' element={<InquiryDetail/>}/>
         <Route path='/applications' element={<UserApplicationsPage/>}/>
-        <Route path="/applications/:applicationId" element={<ApplicationDetails />} />
+        <Route path="/eve/:id" element={<ApplicationDetails />} />
         
         <Route path="/announcements" element={<PublicNoticesListView />} /> 
+        
         <Route path="*" element={<div className="p-4">404 - Page Not Found</div>} />
       </Routes>
       <Footer/>

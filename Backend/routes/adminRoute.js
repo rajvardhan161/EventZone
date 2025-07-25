@@ -2,7 +2,7 @@ import express from 'express'
 import { adminToggleSubscription, bulkUpdateApplicationStatus, deleteUser, getAllUsers, getApplications, getApplicationsByEvent, getApplicationStats, getApplicationSummary, getEventCount, getRecentApplications, getUpcomingEvents, getUpcomingEventsCount, getUserById, getUserCount, initiateRefund, loginAdmin, toggleUserBlock, updateApplicationStatus, updateApplicationStatuss, updatePaymentStatus, updateUserRole } from '../controllers/adminController.js'
 import authAdmin from '../middlewares/authAdmin.js';
 import { adminGetAllEventRequests, adminGetEventRequestById, adminReplyToEventRequest, getAllInquiries, getInquiryById, replyToInquiry } from '../controllers/contactController.js';
-
+ 
 const adminRouter =express.Router()
 
 adminRouter.post('/login',loginAdmin)
@@ -14,10 +14,10 @@ adminRouter.put('/users/:userId/role', authAdmin, updateUserRole);
 adminRouter.patch('/users/:userId/block', authAdmin, toggleUserBlock);
 adminRouter.delete('/users/:userId', authAdmin, deleteUser);
 adminRouter.patch('/users/:userId/subscribe', authAdmin, adminToggleSubscription);
-adminRouter.get('/inquiries', getAllInquiries);  
-adminRouter.get('/inquiries/:inquiryId', getInquiryById);  
+adminRouter.get('/inquiries',authAdmin, getAllInquiries);  
+adminRouter.get('/inquiries/:inquiryId',authAdmin, getInquiryById);  
 adminRouter.put('/inquiries/:inquiryId', replyToInquiry);
-adminRouter.get('/event-requests', adminGetAllEventRequests);
+adminRouter.get('/event-requests',authAdmin, adminGetAllEventRequests);
 adminRouter.get('/event-requests/:requestId', adminGetEventRequestById);
 adminRouter.put('/event-requests/:requestId', adminReplyToEventRequest);
 
@@ -38,4 +38,6 @@ adminRouter.post('/applications/bulk-action',bulkUpdateApplicationStatus)
 adminRouter.post('/:applicationId/refund', initiateRefund);
 adminRouter.get('/upcoming', authAdmin, getUpcomingEvents);
 adminRouter.get('/upcoming/count', getUpcomingEventsCount);
+
+  
 export default adminRouter

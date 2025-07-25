@@ -7,46 +7,31 @@ import { AppContext } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import {
   FaClipboardList, FaCalendarAlt, FaLink, FaExpandArrowsAlt, FaUserCircle,
-  FaSpinner, FaExclamationTriangle
-} from 'react-icons/fa';
+  FaSpinner, FaExclamationTriangle, FaFileAlt, FaEnvelopeOpen, FaTasks, FaBell
+} from 'react-icons/fa'; // Added more icons
 
-const UserIcon = ({ className = "w-6 h-6" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-  </svg>
+// --- Reusable Icons (Themed) ---
+const ThemedIcon = ({ IconComponent, className = "w-6 h-6", themeColor, ...props }) => (
+  <IconComponent className={`${className} transition-colors duration-300`} style={{ color: themeColor }} {...props} />
 );
 
-const CalendarIcon = ({ className = "w-6 h-6" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-4 3h-2m3-3V1M4 7h16M4 11h16M4 15h16M6 20h12a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
-  </svg>
-);
-
-const DocumentIcon = ({ className = "w-6 h-6" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-  </svg>
-);
-
-const MailIcon = ({ className = "w-6 h-6" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22.05L21 8M3 8l3-3m0 0l3.898 2.617M3 8v10a2 2 0 002 2h14a2 2 0 002-2V8m-7.89 5.26a2 2 0 01-2.22.05"></path>
-  </svg>
-);
-
-const SpinnerIcon = ({ className = "animate-spin h-6 w-6" }) => (
-  <svg className={className} viewBox="0 0 24 24" style={{ color: 'currentColor' }}>
+const Spinner = ({ className = "animate-spin h-8 w-8", themeColor }) => (
+  <svg className={className} viewBox="0 0 24 24" style={{ color: themeColor }}>
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 8l3-3.709z"></path>
   </svg>
 );
 
-const ErrorIcon = ({ className = "h-12 w-12 text-red-500 mb-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-  </svg>
+const ErrorDisplay = ({ message, theme }) => (
+  <div className="flex flex-col items-center justify-center py-10" style={{ fontFamily: theme.fontFamily }}>
+    <FaExclamationTriangle className="h-12 w-12 mb-4" style={{ color: theme.errorColor || '#dc2626' }} />
+    <p className="text-lg text-center" style={{ color: theme.errorColor || '#dc2626' }}>
+      {message || 'An unexpected error occurred.'}
+    </p>
+  </div>
 );
 
+// --- Notice Card Component ---
 const NoticeCard = ({ notice, theme, onClick }) => {
   const createdAt = new Date(notice.createdAt);
   const expiresAt = notice.expiresAt ? new Date(notice.expiresAt) : null;
@@ -57,23 +42,17 @@ const NoticeCard = ({ notice, theme, onClick }) => {
 
   if (isExpired) {
     statusText = 'Expired';
-    statusStyles = { color: '#dc2626', fontWeight: '500' };
+    statusStyles = { color: theme.errorColor || '#dc2626', fontWeight: '600' };
   } else if (notice.status === 'Draft') {
     statusText = 'Draft';
-    statusStyles = { color: '#6b7280', fontWeight: '500' };
+    statusStyles = { color: theme.textColorMuted || '#6c757d', fontWeight: '600' };
   } else {
     statusText = 'Posted';
-    statusStyles = { color: '#10b981', fontWeight: '500' };
+    statusStyles = { color: theme.successColor || '#10b981', fontWeight: '600' };
   }
 
-  const postDateStyles = {
-    fontSize: '0.85rem',
-    opacity: '0.7',
-    fontFamily: theme.fontFamily,
-  };
-
   const noticeTitleLinkStyles = {
-    color: theme.primaryColor || '#4f46e5',
+    color: theme.accentColor || theme.primaryColor || '#4f46e5',
     textDecoration: 'none',
     fontWeight: '500',
     display: 'flex',
@@ -81,25 +60,30 @@ const NoticeCard = ({ notice, theme, onClick }) => {
     gap: '8px',
     transition: 'color 0.3s ease',
     fontFamily: theme.fontFamily,
+    fontSize: '0.9rem',
   };
 
   return (
     <div
-      className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between"
-      style={{ backgroundColor: theme.cardBgColor, fontFamily: theme.fontFamily }}
+      className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between border"
+      style={{
+        backgroundColor: theme.cardBgColor,
+        fontFamily: theme.fontFamily,
+        borderColor: theme.borderColor,
+      }}
       onClick={() => onClick(notice)}
     >
       <div className="flex-grow flex items-center">
-        <div className="p-1 rounded-full mr-4" style={{ backgroundColor: theme.primaryColor }}>
-          <FaClipboardList className="w-8 h-8 text-white" />
-        </div>
+        <ThemedIcon IconComponent={FaBell} themeColor={theme.primaryColor} className="w-8 h-8 mr-4 p-2 rounded-full" style={{ backgroundColor: theme.primaryColor + '20' }} />
         <div>
-          <p className="text-xl font-bold" style={{ color: theme.primaryColor, fontFamily: theme.fontFamily }}>{notice.title}</p>
-          <h3 className="text-base font-semibold mt-1" style={{ fontFamily: theme.fontFamily }}>
+          <p className="text-lg font-bold transition-colors duration-300" style={{ color: theme.primaryColor, fontFamily: theme.fontFamily }}>{notice.title}</p>
+          <h3 className="text-base font-semibold mt-1 transition-colors duration-300" style={{ color: theme.textColor, fontFamily: theme.fontFamily }}>
             {notice.message.substring(0, 60)}
             {notice.message.length > 60 ? '...' : ''}
           </h3>
-          <p className="text-sm text-gray-500 mt-2" style={{ fontFamily: theme.fontFamily }}>{createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-sm text-gray-500 mt-2" style={{ fontFamily: theme.fontFamily }}>
+            {createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
         </div>
       </div>
       <div className="flex flex-col items-end ml-4">
@@ -116,7 +100,7 @@ const NoticeCard = ({ notice, theme, onClick }) => {
   );
 };
 
-const Dashboard = () => {
+const UserDashboard = () => {
   const navigate = useNavigate();
   const { token, setToken, setUserData, backendUrl } = useContext(AppContext);
   const { currentTheme } = useTheme();
@@ -124,26 +108,31 @@ const Dashboard = () => {
   const [profileData, setProfileData] = useState(null);
   const [eventApplications, setEventApplications] = useState([]);
   const [userInquiries, setUserInquiries] = useState([]);
-  const [upcomingApplications, setUpcomingApplications] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]); // Renamed for clarity
   const [notices, setNotices] = useState([]);
+
   const [selectedNotice, setSelectedNotice] = useState(null);
 
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [applicationsLoading, setApplicationsLoading] = useState(true);
-  const [inquiriesLoading, setInquiriesLoading] = useState(true);
-  const [upcomingEventsLoading, setUpcomingEventsLoading] = useState(true);
-  const [noticesLoading, setNoticesLoading] = useState(true);
+  const [loadingStates, setLoadingStates] = useState({
+    profile: true,
+    applications: true,
+    inquiries: true,
+    upcomingEvents: true,
+    notices: true,
+  });
 
-  const [profileError, setProfileError] = useState('');
-  const [applicationsError, setApplicationsError] = useState('');
-  const [inquiriesError, setInquiriesError] = useState('');
-  const [upcomingEventsError, setUpcomingEventsError] = useState('');
-  const [noticesError, setNoticesError] = useState('');
+  const [errorStates, setErrorStates] = useState({
+    profile: '',
+    applications: '',
+    inquiries: '',
+    upcomingEvents: '',
+    notices: '',
+  });
   const [generalError, setGeneralError] = useState('');
 
+  const goToProfile = () => navigate('/profile');
   const goToApplications = () => navigate('/applications');
   const goToUpcomingEvents = () => navigate('/event');
-  const goToProfile = () => navigate('/profile');
   const goToSupportInquiries = () => navigate('/support/inquiries');
   const goToPublicNotices = () => navigate('/public-notices');
 
@@ -154,23 +143,44 @@ const Dashboard = () => {
       return;
     }
     const fetchUserDashboardData = async () => {
-      setProfileLoading(true); setApplicationsLoading(true); setInquiriesLoading(true); setUpcomingEventsLoading(true); setNoticesLoading(true);
-      setProfileError(''); setApplicationsError(''); setInquiriesError(''); setUpcomingEventsError(''); setNoticesError('');
+      setLoadingStates({ profile: true, applications: true, inquiries: true, upcomingEvents: true, notices: true });
+      setErrorStates({ profile: '', applications: '', inquiries: '', upcomingEvents: '', notices: '' });
       setGeneralError('');
+
       try {
-        const [profileResponse, applicationsResponse, inquiriesResponse, upcomingAppsResponse, noticesResponse] = await Promise.all([
-          axios.get(`${backendUrl}/api/user/profile`, { headers: { Authorization: `Bearer ${token}` } }).catch(err => { setProfileError(err.response?.data?.message || 'Failed to load profile.'); throw err; }),
-          axios.get(`${backendUrl}/api/user/user/applications`, { headers: { Authorization: `Bearer ${token}` } }).catch(err => { setApplicationsError(err.response?.data?.message || 'Failed to load applications.'); throw err; }),
-          axios.get(`${backendUrl}/api/user/user/inquiries`, { headers: { Authorization: `Bearer ${token}` } }).catch(err => { setInquiriesError(err.response?.data?.message || 'Failed to load inquiries.'); throw err; }),
-          axios.get(`${backendUrl}/api/user/events/upcoming/my`, { headers: { Authorization: `Bearer ${token}` } }).catch(err => { setUpcomingEventsError(err.response?.data?.message || 'Failed to load upcoming events.'); throw err; }),
-          axios.get(`${backendUrl}/api/notice/user/notices`, { headers: { Authorization: `Bearer ${token}` } }).catch(err => { setNoticesError(err.response?.data?.message || 'Failed to load notices.'); throw err; }),
-        ]);
-        setProfileData(profileResponse.data);
-        setEventApplications(applicationsResponse.data.applications || []);
-        setUserInquiries(inquiriesResponse.data || []);
-        setUpcomingApplications(upcomingAppsResponse.data.upcomingApplications || []);
-        setNotices(noticesResponse.data);
+        const requests = {
+          profile: axios.get(`${backendUrl}/api/user/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+          applications: axios.get(`${backendUrl}/api/user/user/applications`, { headers: { Authorization: `Bearer ${token}` } }),
+          inquiries: axios.get(`${backendUrl}/api/user/user/inquiries`, { headers: { Authorization: `Bearer ${token}` } }),
+          upcomingEvents: axios.get(`${backendUrl}/api/user/events/upcoming/my`, { headers: { Authorization: `Bearer ${token}` } }),
+          notices: axios.get(`${backendUrl}/api/notice/user/notices`, { headers: { Authorization: `Bearer ${token}` } }),
+        };
+
+        const responses = await Promise.allSettled(
+          Object.entries(requests).map(([key, promise]) =>
+            promise.catch(err => {
+              setErrorStates(prev => ({ ...prev, [key]: err.response?.data?.message || `Failed to load ${key}.` }));
+              throw err; // Re-throw to trigger Promise.allSettled error handling
+            })
+          )
+        );
+
+        // Process successful responses
+        responses.forEach((result, index) => {
+          const key = Object.keys(requests)[index];
+          if (result.status === 'fulfilled') {
+            const data = result.value.data;
+            if (key === 'profile') setProfileData(data);
+            else if (key === 'applications') setEventApplications(data.applications || []);
+            else if (key === 'inquiries') setUserInquiries(data || []);
+            else if (key === 'upcomingEvents') setUpcomingEvents(data.upcomingApplications || []);
+            else if (key === 'notices') setNotices(data);
+          }
+        });
+
       } catch (err) {
+        // This catch block will only be hit if Promise.allSettled itself fails,
+        // or if an error is re-thrown and not caught by individual .catch
         setGeneralError('An error occurred while fetching dashboard data.');
         toast.error('Failed to load dashboard data. Please try again.');
         if (err.response && err.response.status === 401) {
@@ -181,180 +191,165 @@ const Dashboard = () => {
           navigate('/login');
         }
       } finally {
-        setProfileLoading(false);
-        setApplicationsLoading(false);
-        setInquiriesLoading(false);
-        setUpcomingEventsLoading(false);
-        setNoticesLoading(false);
+        setLoadingStates({
+          profile: false,
+          applications: false,
+          inquiries: false,
+          upcomingEvents: false,
+          notices: false,
+        });
       }
     };
     fetchUserDashboardData();
   }, [token, navigate, backendUrl, setToken, setUserData]);
 
   const profileStats = useMemo(() => {
-    if (!profileData || profileError) return { current_semester: 'N/A', course: 'N/A' };
+    if (!profileData) return { current_semester: 'N/A', course: 'N/A' };
     return {
       current_semester: profileData.current_semester || 'N/A',
       course: profileData.course || 'N/A',
     };
-  }, [profileData, profileError]);
+  }, [profileData]);
 
-  const applicationStats = useMemo(() => {
-    if (applicationsError) return { total: 'Error' };
-    return { total: eventApplications.length };
-  }, [eventApplications, applicationsError]);
-
+  const applicationCount = eventApplications.length;
   const upcomingEventCount = useMemo(() => {
-    if (upcomingEventsError) return 'Error';
     const now = new Date();
-    const activeUpcomingApplications = upcomingApplications.filter(app => {
-      const eventDate = new Date(app.eventDate);
-      return eventDate >= now;
-    });
-    return activeUpcomingApplications.length;
-  }, [upcomingApplications, upcomingEventsError]);
+    return upcomingEvents.filter(app => new Date(app.eventDate) >= now).length;
+  }, [upcomingEvents]);
 
   const latestNotices = useMemo(() => {
-    if (noticesError) return [];
     const sortedNotices = [...notices].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return sortedNotices.slice(0, 3);
-  }, [notices, noticesError]);
+  }, [notices]);
 
   const recentInquiries = useMemo(() => {
-    if (inquiriesError) return [];
     const sortedInquiries = [...userInquiries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return sortedInquiries.slice(0, 5);
-  }, [userInquiries, inquiriesError]);
+  }, [userInquiries]);
 
   const handleOpenNoticeFullscreen = (notice) => {
     setSelectedNotice(notice);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden'; // Prevent scrolling while modal is open
   };
 
   const handleCloseNoticeFullscreen = () => {
     setSelectedNotice(null);
-    document.body.style.overflow = '';
+    document.body.style.overflow = ''; // Restore scrolling
   };
 
+  // --- Themed Styles for Fullscreen Modal ---
   const fullscreenOverlayStyles = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', justifyContent: 'center',
+    alignItems: 'center', zIndex: 1000,
   };
 
   const fullscreenContentStyles = {
-    backgroundColor: currentTheme.cardBgColor || '#fff',
-    padding: '40px',
-    borderRadius: '20px',
-    boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
-    maxWidth: '90%',
-    maxHeight: '85vh',
-    overflowY: 'auto',
-    position: 'relative',
-    fontFamily: currentTheme.fontFamily,
+    backgroundColor: currentTheme.cardBgColor, padding: '40px', borderRadius: '20px',
+    boxShadow: `0 25px 60px rgba(0,0,0,0.3), 0 0 0 2px ${currentTheme.borderColor}`,
+    maxWidth: '90%', maxHeight: '85vh', overflowY: 'auto', position: 'relative',
+    fontFamily: currentTheme.fontFamily, color: currentTheme.textColor,
   };
 
   const fullscreenTitleStyles = {
-    fontSize: '2.5rem',
-    fontWeight: '700',
-    color: currentTheme.primaryColor || '#4f46e5',
-    marginBottom: '20px',
-    fontFamily: currentTheme.fontFamily,
+    fontSize: '2.5rem', fontWeight: '700', marginBottom: '20px', fontFamily: currentTheme.fontFamily,
+    color: currentTheme.primaryColor,
   };
 
   const fullscreenMessageStyles = {
-    fontSize: '1.15rem',
-    lineHeight: '1.8',
-    marginBottom: '30px',
-    opacity: '0.9',
-    color: currentTheme.textColor || '#333333',
-    fontFamily: currentTheme.fontFamily,
+    fontSize: '1.15rem', lineHeight: '1.8', marginBottom: '30px', opacity: '0.9',
+    fontFamily: currentTheme.fontFamily, color: currentTheme.textColor,
   };
 
   const fullscreenLinkStyles = {
-    color: currentTheme.secondaryColor || '#3b82f6',
-    fontWeight: '600',
-    textDecoration: 'none',
-    borderBottom: `2px solid ${currentTheme.secondaryColor || '#3b82f6'}`,
-    paddingBottom: '4px',
-    transition: 'color 0.3s ease, border-color 0.3s ease',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '10px',
-    fontSize: '1.05rem',
-    fontFamily: currentTheme.fontFamily,
+    color: currentTheme.accentColor, fontWeight: '600', textDecoration: 'none',
+    borderBottom: `2px solid ${currentTheme.accentColor}`, paddingBottom: '4px',
+    transition: 'color 0.3s ease, border-color 0.3s ease', display: 'inline-flex',
+    alignItems: 'center', gap: '10px', fontSize: '1.05rem', fontFamily: currentTheme.fontFamily,
   };
 
   const fullscreenCloseButtonStyles = {
-    position: 'absolute',
-    top: '20px',
-    right: '20px',
-    fontSize: '2rem',
-    color: currentTheme.textColor || '#333333',
-    cursor: 'pointer',
-    background: 'none',
-    border: 'none',
+    position: 'absolute', top: '20px', right: '20px', fontSize: '2rem',
+    cursor: 'pointer', background: 'none', border: 'none',
+    color: currentTheme.textColor,
   };
 
-  const renderSection = ({ title, data, isLoading, errorMsg, children, onClick }) => {
-    const sectionStyle = {
-      backgroundColor: currentTheme.cardBgColor,
-      color: currentTheme.textColor,
-      fontFamily: currentTheme.fontFamily,
-    };
-    const titleStyle = {
-      color: currentTheme.primaryColor,
-      fontFamily: currentTheme.fontFamily,
-    };
-    const sectionErrorStyle = {
-      fontFamily: currentTheme.fontFamily,
-      color: currentTheme.errorColor || '#dc2626',
-    }
-    const sectionEmptyStyle = {
-      fontFamily: currentTheme.fontFamily,
-      color: currentTheme.textColor,
-      opacity: '0.7',
-    }
+  const detailCardStyles = (theme) => ({
+    backgroundColor: theme.cardBgColor,
+    color: theme.textColor,
+    fontFamily: theme.fontFamily,
+    borderColor: theme.borderColor,
+  });
+
+  const sectionTitleStyles = (theme) => ({
+    color: theme.primaryColor,
+    fontFamily: theme.fontFamily,
+  });
+
+  const sectionErrorStyles = (theme) => ({
+    fontFamily: theme.fontFamily,
+    color: theme.errorColor || '#dc2626',
+  });
+
+  const sectionEmptyStyles = (theme) => ({
+    fontFamily: theme.fontFamily,
+    color: theme.textColor,
+    opacity: '0.7',
+  });
+
+  const statCardStyles = (theme, highlightColor) => ({
+    backgroundColor: theme.cardBgColor,
+    borderColor: theme.borderColor,
+    fontFamily: theme.fontFamily,
+    color: theme.textColor,
+    '& .stat-value': { color: highlightColor, fontFamily: theme.fontFamily, fontWeight: 'bold' },
+    '& .stat-label': { color: theme.textColorMuted || '#6c757d', fontFamily: theme.fontFamily, fontSize: '0.875rem' },
+  });
+
+  const renderSection = ({ title, data, isLoading, errorMsg, children, onClick, sectionId, iconComponent: IconComponent }) => {
+    const hasData = data && data.length > 0;
+    const showViewAll = onClick && hasData;
+
     return (
-      <div className="p-8 rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl" style={sectionStyle}>
+      <section id={sectionId} className="p-8 rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl"
+        style={{ backgroundColor: currentTheme.cardBgColor, fontFamily: currentTheme.fontFamily }}>
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold" style={titleStyle}>
-            {title}
-          </h3>
-          {onClick && (
+          <div className="flex items-center">
+            {IconComponent && <IconComponent className="w-7 h-7 mr-3 opacity-70" style={{ color: currentTheme.primaryColor }} />}
+            <h3 className="text-2xl font-bold" style={sectionTitleStyles(currentTheme)}>
+              {title}
+            </h3>
+          </div>
+          {showViewAll && (
             <button
               onClick={onClick}
-              className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
-              style={{ color: currentTheme.accent, fontFamily: currentTheme.fontFamily }}
+              className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700"
+              style={{ color: currentTheme.accentColor, fontFamily: currentTheme.fontFamily }}
             >
               View All →
             </button>
           )}
         </div>
-        {isLoading ? (
+
+        {isLoading && (
           <div className="flex justify-center items-center py-10">
-            <SpinnerIcon className="h-8 w-8" style={{ color: currentTheme.primaryColor }} />
-            <span className="ml-3">Loading...</span>
+            <Spinner themeColor={currentTheme.primaryColor} />
+            <span className="ml-3" style={sectionEmptyStyles(currentTheme)}>Loading...</span>
           </div>
-        ) : errorMsg ? (
-          <p className="text-center py-6" style={sectionErrorStyle}>
-            {errorMsg}
-          </p>
-        ) : data && data.length > 0 ? (
-          children
-        ) : (
-          <p className="text-center py-6" style={sectionEmptyStyle}>
+        )}
+
+        {!isLoading && errorMsg && (
+          <ErrorDisplay message={errorMsg} theme={currentTheme} />
+        )}
+
+        {!isLoading && !errorMsg && !hasData && (
+          <p className="text-center py-6" style={sectionEmptyStyles(currentTheme)}>
             No {title.toLowerCase()} found.
           </p>
         )}
-      </div>
+
+        {!isLoading && !errorMsg && hasData && children}
+      </section>
     );
   };
 
@@ -368,11 +363,15 @@ const Dashboard = () => {
       }}
     >
       <div className="max-w-7xl mx-auto">
-        {profileData && !profileError && (
-          <div className="mb-8 p-8 rounded-2xl shadow-lg transition-all duration-500 flex flex-col md:flex-row items-center justify-between"
-            style={{ backgroundColor: currentTheme.accent, color: currentTheme.background, fontFamily: currentTheme.fontFamily }}>
+        {profileData && !loadingStates.profile && !errorStates.profile && (
+          <div className="mb-8 p-8 rounded-2xl shadow-xl flex flex-col md:flex-row items-center justify-between transition-all duration-500"
+            style={{
+              backgroundColor: currentTheme.accentColor,
+              color: currentTheme.background,
+              fontFamily: currentTheme.fontFamily,
+            }}>
             <div>
-              <h2 className="text-4xl font-extrabold mb-2" style={{ fontFamily: currentTheme.fontFamily }}>Welcome Back, {profileData.name}!</h2>
+              <h2 className="text-4xl font-extrabold mb-2" style={{ fontFamily: currentTheme.fontFamily }}>Welcome Back, {profileData.name || 'User'}!</h2>
               <p className="text-xl opacity-90" style={{ fontFamily: currentTheme.fontFamily }}>Your personalized dashboard summary.</p>
             </div>
             <div className="mt-4 md:mt-0 flex space-x-4">
@@ -381,7 +380,7 @@ const Dashboard = () => {
                 className="px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow-md hover:shadow-lg"
                 style={{
                   backgroundColor: currentTheme.background,
-                  color: currentTheme.accent,
+                  color: currentTheme.accentColor,
                   border: `2px solid ${currentTheme.background}`,
                   fontFamily: currentTheme.fontFamily,
                 }}
@@ -395,6 +394,7 @@ const Dashboard = () => {
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
                   navigate('/login');
+                  toast.info('You have been logged out.');
                 }}
                 className="px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow-md hover:shadow-lg"
                 style={{
@@ -413,19 +413,17 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-8">
             {renderSection({
-              title: "Profile Summary",
+              title: "Profile Overview",
+              sectionId: "profile-overview",
               data: profileData ? [profileData] : [],
-              isLoading: profileLoading,
-              errorMsg: profileError,
+              isLoading: loadingStates.profile,
+              errorMsg: errorStates.profile,
               onClick: goToProfile,
+              iconComponent: FaUserCircle,
               children: (
                 <div
-                  className="p-8 rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl text-center"
-                  style={{
-                    backgroundColor: currentTheme.cardBgColor,
-                    color: currentTheme.textColor,
-                    fontFamily: currentTheme.fontFamily,
-                  }}
+                  className="p-8 rounded-2xl shadow-xl text-center border transition-all duration-500 hover:shadow-2xl"
+                  style={detailCardStyles(currentTheme)}
                 >
                   <img
                     src={profileData?.profile_photo || '/images/default-profile.png'}
@@ -437,7 +435,7 @@ const Dashboard = () => {
                   <h1 className="text-3xl font-extrabold mt-5 mb-1 transition-colors duration-300" style={{ color: currentTheme.primaryColor, fontFamily: currentTheme.fontFamily }}>
                     {profileData?.name || 'User'}
                   </h1>
-                  <p className="text-base text-gray-500 mb-6" style={{ fontFamily: currentTheme.fontFamily }}>{profileData?.email || 'No email available'}</p>
+                  <p className="text-base opacity-80 mb-6" style={{ fontFamily: currentTheme.fontFamily }}>{profileData?.email || 'No email available'}</p>
 
                   <button
                     onClick={goToProfile}
@@ -457,18 +455,20 @@ const Dashboard = () => {
 
             {renderSection({
               title: "Your Details",
+              sectionId: "user-details",
               data: profileData ? [profileStats] : [],
-              isLoading: profileLoading,
-              errorMsg: profileError,
+              isLoading: loadingStates.profile,
+              errorMsg: errorStates.profile,
+              iconComponent: FaClipboardList,
               children: (
                 <div className="grid grid-cols-2 gap-4 text-center w-full">
-                  <div className="p-4 rounded-lg border transition-colors duration-300 hover:border-gray-300" style={{ backgroundColor: currentTheme.footerBg, borderColor: currentTheme.borderColor, fontFamily: currentTheme.fontFamily }}>
-                    <p className="text-2xl font-bold" style={{ color: currentTheme.primaryColor, fontFamily: currentTheme.fontFamily }}>{profileStats.current_semester}</p>
-                    <p className="text-sm text-gray-500 mt-1" style={{ fontFamily: currentTheme.fontFamily }}>Semester</p>
+                  <div className="p-5 rounded-lg border transition-colors duration-300 hover:shadow-sm" style={statCardStyles(currentTheme, currentTheme.primaryColor)}>
+                    <p className="text-3xl stat-value">{(profileStats.current_semester.length > 3) ? profileStats.current_semester.slice(0,3) + '..' : profileStats.current_semester}</p>
+                    <p className="text-sm stat-label mt-1">Semester</p>
                   </div>
-                  <div className="p-4 rounded-lg border transition-colors duration-300 hover:border-gray-300" style={{ backgroundColor: currentTheme.footerBg, borderColor: currentTheme.borderColor, fontFamily: currentTheme.fontFamily }}>
-                    <p className="text-2xl font-bold" style={{ color: currentTheme.primaryColor, fontFamily: currentTheme.fontFamily }}>{profileStats.course}</p>
-                    <p className="text-sm text-gray-500 mt-1" style={{ fontFamily: currentTheme.fontFamily }}>Course</p>
+                  <div className="p-5 rounded-lg border transition-colors duration-300 hover:shadow-sm" style={statCardStyles(currentTheme, currentTheme.accentColor)}>
+                    <p className="text-3xl stat-value">{profileStats.course || 'N/A'}</p>
+                    <p className="text-sm stat-label mt-1">Course</p>
                   </div>
                 </div>
               )
@@ -476,23 +476,24 @@ const Dashboard = () => {
 
             {renderSection({
               title: "Quick Actions",
-              data: [{}],
+              sectionId: "quick-actions",
+              data: [{}], // Dummy data to show section if no other data exists
               children: (
                 <ul className="space-y-4">
-                  <li onClick={goToProfile} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ color: currentTheme.textColor, fontFamily: currentTheme.fontFamily }}>
-                    <UserIcon className="w-6 h-6 mr-3 opacity-70" />
+                  <li onClick={goToProfile} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ fontFamily: currentTheme.fontFamily, color: currentTheme.textColor }}>
+                    <ThemedIcon IconComponent={FaUserCircle} themeColor={currentTheme.textColorMuted} className="w-6 h-6 mr-3" />
                     My Profile
                   </li>
-                  <li onClick={goToUpcomingEvents} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ color: currentTheme.textColor, fontFamily: currentTheme.fontFamily }}>
-                    <CalendarIcon className="w-6 h-6 mr-3 opacity-70" />
+                  <li onClick={goToUpcomingEvents} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ fontFamily: currentTheme.fontFamily, color: currentTheme.textColor }}>
+                    <ThemedIcon IconComponent={FaCalendarAlt} themeColor={currentTheme.textColorMuted} className="w-6 h-6 mr-3" />
                     Upcoming Events
                   </li>
-                  <li onClick={goToApplications} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ color: currentTheme.textColor, fontFamily: currentTheme.fontFamily }}>
-                    <DocumentIcon className="w-6 h-6 mr-3 opacity-70" />
+                  <li onClick={goToApplications} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ fontFamily: currentTheme.fontFamily, color: currentTheme.textColor }}>
+                    <ThemedIcon IconComponent={FaFileAlt} themeColor={currentTheme.textColorMuted} className="w-6 h-6 mr-3" />
                     My Applications
                   </li>
-                  <li onClick={goToSupportInquiries} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ color: currentTheme.textColor, fontFamily: currentTheme.fontFamily }}>
-                    <MailIcon className="w-6 h-6 mr-3 opacity-70" />
+                  <li onClick={goToSupportInquiries} className="flex items-center cursor-pointer p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" style={{ fontFamily: currentTheme.fontFamily, color: currentTheme.textColor }}>
+                    <ThemedIcon IconComponent={FaEnvelopeOpen} themeColor={currentTheme.textColorMuted} className="w-6 h-6 mr-3" />
                     My Inquiries
                   </li>
                 </ul>
@@ -504,22 +505,22 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {renderSection({
                 title: "Event Applications",
-                data: applicationStats.total !== 'Error' ? Array(applicationStats.total).fill({}) : [],
-                isLoading: applicationsLoading,
-                errorMsg: applicationsError,
+                sectionId: "event-applications",
+                data: applicationCount > 0 ? [{}]: [], // Only show if there's data
+                isLoading: loadingStates.applications,
+                errorMsg: errorStates.applications,
                 onClick: goToApplications,
+                iconComponent: FaTasks,
                 children: (
                   <div
-                    className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between"
-                    style={{ backgroundColor: currentTheme.cardBgColor, fontFamily: currentTheme.fontFamily }}
+                    className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between border"
+                    style={detailCardStyles(currentTheme)}
                   >
                     <div>
                       <div className="flex items-center mb-3">
-                        <div className="p-3 rounded-full mr-4" style={{ backgroundColor: currentTheme.primaryColor }}>
-                          <DocumentIcon className="w-8 h-8 text-white" />
-                        </div>
+                        <ThemedIcon IconComponent={FaFileAlt} themeColor={currentTheme.primaryColor} className="w-8 h-8 mr-4 p-2 rounded-full" style={{ backgroundColor: currentTheme.primaryColor + '20' }} />
                         <div>
-                          <p className="text-4xl font-bold" style={{ color: currentTheme.primaryColor, fontFamily: currentTheme.fontFamily }}>{applicationStats.total === 'Error' ? '!' : applicationStats.total}</p>
+                          <p className="text-4xl font-bold" style={{ color: currentTheme.primaryColor, fontFamily: currentTheme.fontFamily }}>{applicationCount}</p>
                           <h3 className="text-lg font-semibold mt-1" style={{ fontFamily: currentTheme.fontFamily }}>Event Applications</h3>
                         </div>
                       </div>
@@ -531,22 +532,22 @@ const Dashboard = () => {
 
               {renderSection({
                 title: "Upcoming Events",
-                data: typeof upcomingEventCount === 'number' && upcomingEventCount !== 'Error' ? Array(upcomingEventCount).fill({}) : [],
-                isLoading: upcomingEventsLoading,
-                errorMsg: upcomingEventsError,
+                sectionId: "upcoming-events",
+                data: upcomingEventCount > 0 ? [{}]: [], // Only show if there's data
+                isLoading: loadingStates.upcomingEvents,
+                errorMsg: errorStates.upcomingEvents,
                 onClick: goToUpcomingEvents,
+                iconComponent: FaCalendarAlt,
                 children: (
                   <div
-                    className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between"
-                    style={{ backgroundColor: currentTheme.cardBgColor, fontFamily: currentTheme.fontFamily }}
+                    className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between border"
+                    style={detailCardStyles(currentTheme)}
                   >
                     <div>
                       <div className="flex items-center mb-3">
-                        <div className="p-3 rounded-full mr-4" style={{ backgroundColor: currentTheme.accent }}>
-                          <CalendarIcon className="w-8 h-8 text-white" />
-                        </div>
+                        <ThemedIcon IconComponent={FaCalendarAlt} themeColor={currentTheme.accentColor} className="w-8 h-8 mr-4 p-2 rounded-full" style={{ backgroundColor: currentTheme.accentColor + '20' }} />
                         <div>
-                          <p className="text-4xl font-bold" style={{ color: currentTheme.accent, fontFamily: currentTheme.fontFamily }}>{upcomingEventCount === 'Error' ? '!' : upcomingEventCount}</p>
+                          <p className="text-4xl font-bold" style={{ color: currentTheme.accentColor, fontFamily: currentTheme.fontFamily }}>{upcomingEventCount}</p>
                           <h3 className="text-lg font-semibold mt-1" style={{ fontFamily: currentTheme.fontFamily }}>Upcoming Events</h3>
                         </div>
                       </div>
@@ -559,10 +560,12 @@ const Dashboard = () => {
 
             {renderSection({
               title: "Latest Announcements",
+              sectionId: "latest-announcements",
               data: latestNotices,
-              isLoading: noticesLoading,
-              errorMsg: noticesError,
+              isLoading: loadingStates.notices,
+              errorMsg: errorStates.notices,
               onClick: goToPublicNotices,
+              iconComponent: FaBell,
               children: (
                 <div className="space-y-4">
                   {latestNotices.map((notice) => (
@@ -579,25 +582,27 @@ const Dashboard = () => {
 
             {renderSection({
               title: "Your Recent Inquiries",
+              sectionId: "recent-inquiries",
               data: recentInquiries,
-              isLoading: inquiriesLoading,
-              errorMsg: inquiriesError,
+              isLoading: loadingStates.inquiries,
+              errorMsg: errorStates.inquiries,
               onClick: goToSupportInquiries,
+              iconComponent: FaEnvelopeOpen,
               children: (
-                <div className="overflow-hidden rounded-lg shadow-sm">
-                  <table className="min-w-full divide-y">
-                    <thead style={{ backgroundColor: currentTheme.footerBg }}>
+                <div className="overflow-hidden rounded-lg shadow-sm border" style={{ borderColor: currentTheme.borderColor }}>
+                  <table className="min-w-full divide-y" style={{ backgroundColor: currentTheme.cardBgColor, borderColor: currentTheme.borderColor }}>
+                    <thead style={{ backgroundColor: currentTheme.footerBg, fontFamily: currentTheme.fontFamily }}>
                       <tr>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ fontFamily: currentTheme.fontFamily }}>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Inquiry
                         </th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ fontFamily: currentTheme.fontFamily }}>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Date
                         </th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ fontFamily: currentTheme.fontFamily }}>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ fontFamily: currentTheme.fontFamily }}>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Replied By
                         </th>
                         <th scope="col" className="relative px-4 py-3">
@@ -605,13 +610,13 @@ const Dashboard = () => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody style={{ backgroundColor: currentTheme.cardBgColor }}>
+                    <tbody className="divide-y" style={{ borderColor: currentTheme.borderColor }}>
                       {recentInquiries.map((inquiry) => (
-                        <tr key={inquiry._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 border-b" style={{ borderColor: currentTheme.borderColor, fontFamily: currentTheme.fontFamily }}>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm" style={{ fontFamily: currentTheme.fontFamily }}>
+                        <tr key={inquiry._id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200" style={{ fontFamily: currentTheme.fontFamily }}>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm" style={{ color: currentTheme.textColor }}>
                             {inquiry.query ? inquiry.query.substring(0, 40) + (inquiry.query.length > 40 ? '...' : '') : 'N/A'}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm" style={{ fontFamily: currentTheme.fontFamily }}>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm" style={{ color: currentTheme.textColor }}>
                             {inquiry.createdAt ? new Date(inquiry.createdAt).toLocaleDateString() : 'N/A'}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm">
@@ -624,7 +629,7 @@ ${inquiry.inquiryStatus === 'Pending' ? 'bg-orange-100 text-orange-800' :
                               {inquiry.inquiryStatus || 'Unknown'}
                             </span>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm" style={{ fontFamily: currentTheme.fontFamily }}>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm" style={{ color: currentTheme.textColor }}>
                             {inquiry.resolvedBy?.firstName || inquiry.resolvedBy?.lastName
                               ? `${inquiry.resolvedBy.firstName} ${inquiry.resolvedBy.lastName}`
                               : 'Admin'}
@@ -633,7 +638,7 @@ ${inquiry.inquiryStatus === 'Pending' ? 'bg-orange-100 text-orange-800' :
                             <button
                               onClick={() => navigate(`/support/inquiries/${inquiry._id}`)}
                               className="font-medium hover:underline transition duration-200"
-                              style={{ color: currentTheme.accent, fontFamily: currentTheme.fontFamily }}
+                              style={{ color: currentTheme.accentColor, fontFamily: currentTheme.fontFamily }}
                             >
                               View
                             </button>
@@ -648,6 +653,8 @@ ${inquiry.inquiryStatus === 'Pending' ? 'bg-orange-100 text-orange-800' :
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Notice Modal */}
       {selectedNotice && (
         <div style={fullscreenOverlayStyles} onClick={handleCloseNoticeFullscreen}>
           <div style={fullscreenContentStyles} onClick={(e) => e.stopPropagation()}>
@@ -662,31 +669,29 @@ ${inquiry.inquiryStatus === 'Pending' ? 'bg-orange-100 text-orange-800' :
                   rel="noopener noreferrer"
                   style={fullscreenLinkStyles}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = currentTheme.secondaryColor || '#3b82f6';
-                    e.currentTarget.style.borderColor = currentTheme.secondaryColor || '#3b82f6';
+                    e.currentTarget.style.color = currentTheme.accentColor;
+                    e.currentTarget.style.borderColor = currentTheme.accentColor;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = currentTheme.primaryColor || '#4f46e5';
-                    e.currentTarget.style.borderColor = currentTheme.primaryColor || '#4f46e5';
+                    e.currentTarget.style.color = currentTheme.primaryColor;
+                    e.currentTarget.style.borderColor = currentTheme.primaryColor;
                   }}
                 >
                   {selectedNotice.linkText || 'View Link'} <FaLink className="text-xs" />
                 </a>
               </div>
             )}
-            <div className="mt-auto pt-6 border-t" style={{ ...{ fontFamily: currentTheme.fontFamily, color: currentTheme.textColor, opacity: '0.8', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }, borderTopColor: currentTheme.borderColor || '#e0e0e0' }}>
+            <div className="mt-auto pt-6 border-t" style={{ ...{ fontFamily: currentTheme.fontFamily, color: currentTheme.textColor, opacity: '0.8', display: 'flex', alignItems: 'center', gap: '15px', fontSize: '0.9rem' }, borderTopColor: currentTheme.borderColor }}>
               <div className="flex items-center gap-2">
-                <FaUserCircle className="text-xl opacity-70" />
+                <ThemedIcon IconComponent={FaUserCircle} themeColor={currentTheme.textColorMuted} className="text-xl" />
                 <p>
-                  Sent by: <strong className="font-semibold">{selectedNotice.sentByAdminId?.username || ' Admin'}</strong>
+                  Sent by: <strong className="font-semibold">{selectedNotice.sentByAdminId?.username || 'Admin'}</strong>
                 </p>
               </div>
               {selectedNotice.expiresAt && (
                 <div className="flex items-center gap-1">
-                  <FaCalendarAlt />
-                  Expires: {new Date(selectedNotice.expiresAt).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric'
-                  })}
+                  <ThemedIcon IconComponent={FaCalendarAlt} themeColor={currentTheme.textColorMuted} className="text-base" />
+                  Expires: {new Date(selectedNotice.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </div>
               )}
             </div>
@@ -697,4 +702,4 @@ ${inquiry.inquiryStatus === 'Pending' ? 'bg-orange-100 text-orange-800' :
   );
 };
 
-export default Dashboard;
+export default UserDashboard;

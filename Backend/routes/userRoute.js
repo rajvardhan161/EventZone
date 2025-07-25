@@ -1,8 +1,9 @@
 import express from 'express';
-import { applyForEvent,  getAllEvents, getApplications, getEventAndUserDetails, getEventById, getLatestEvents,   getProfile, getSpecificApplication, getUpcomingEvents, getUserApplications, getUserInquiries, getUserUpcomingApplications, login, requestOtp, signup, subscribe, unsubscribe, updateProfile, verifyOtp } from '../controllers/userController.js';
+import { applyForEvent,  getAllEvents, getAllHeroSlides, getAllOrganizersPublic, getApplications, getEventAndUserDetails, getEventById, getLatestEvents,   getProfile, getSpecificApplication, getUpcomingEvents, getUserApplications, getUserInquiries, getUserUpcomingApplications, login, requestOtp, signup, subscribe, unsubscribe, updateProfile, verifyOtp } from '../controllers/userController.js';
 import authUser from '../middlewares/authUser.js';
 import upload from '../config/multer.js';
 import { getInquiryById, submitEventOrganizationRequest, submitInquiry } from '../controllers/contactController.js';
+import { getEventDetailsPublic, getFutureEventsPublic } from '../controllers/eventController.js';
 
 
 const userrouter = express.Router();
@@ -32,4 +33,8 @@ userrouter.get('/user/applications/:applicationId', authUser, getSpecificApplica
 userrouter.get('/user/inquiries', authUser, getUserInquiries);
 userrouter.get('/user/inquiries/:inquiryId',  getInquiryById);
 userrouter.get('/events/upcoming/my', authUser, getUserUpcomingApplications);
+userrouter.get('/public/future-events', getFutureEventsPublic);
+userrouter.get('/public/events/:id', getEventDetailsPublic);
+userrouter.get('/public/hero', getAllHeroSlides);
+userrouter.get('/public/organizer', getAllOrganizersPublic);
 export default userrouter;
