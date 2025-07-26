@@ -5,6 +5,7 @@ import EventModel from '../Models/EventModel.js';
 import futureModel from '../Models/FeauterModel.js';
 import ImageHighlight from '../Models/Highlight.js';
 import HeroModel from '../Models/HeroSlide.js';
+import ApplicationModel from '../Models/Application.js';
 
 /**
  * Uploads a single file to Cloudinary.
@@ -101,6 +102,7 @@ const uploadToCloudinary = async (filePath, folder) => {
       organizerEmail,
       organizerPhone,
       query,
+      createdBy: req.user?.id,
       
       // If you have authenticated users and want to link the creator:
       // createdBy: req.user.id, // Assuming req.user is populated by auth middleware
@@ -639,7 +641,81 @@ const deleteGovNotice = async (req, res) => {
 };
 
 
+const getEvents = async (req, res) => {
+  try {
+    const organizerId = req.user?.id;
+
+    if (!organizerId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const events = await EventModel.find({ createdBy: organizerId })
+      .sort({ eventDate: 1 })
+      .select('-__v') // keep currentApplications
+      .lean();
+
+    // No need to override currentApplications – already stored in DB
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      events,
+    });
+
+  } catch (error) {
+    console.error('Error fetching organizer events:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch events',
+      error: error.message,
+    });
+  }
+};
+
+
+
+const getEventByIdorgan = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+
+    // Step 1: Fetch the event
+    const event = await EventModel.findById(eventId).select('-__v');
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found',
+      });
+    }
+
+    // Step 2: Fetch all applications for this event
+    const applications = await ApplicationModel.find({ eventId }).select('userName userEmail userstudent_id userId');
+
+    // Step 3: Attach applications to the event response
+    const participants = applications.map(app => ({
+      _id: app.userId,
+      name: app.userName,
+      email: app.userEmail,
+      student_id: app.userstudent_id,
+    }));
+
+    res.status(200).json({
+      success: true,
+      event: {
+        ...event.toObject(),
+        participants,
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch event',
+      error: error.message,
+    });
+  }
+};
+
 export { deleteEvent,createEvent,getAllEvents,getEventById,updateEvent,createFutureEvent,getAllFutureEvents,
   deleteFutureEvent,editFutureEvent,getEventDetailsPublic,getFutureEventsPublic,createImageHighlights,getHighlights,
-  deleteHighlight,getPublicHighlights,getAllHeroSlides,createHeroSlide,deleteGovNotice,
+  deleteHighlight,getPublicHighlights,getAllHeroSlides,createHeroSlide,deleteGovNotice,getEvents,getEventByIdorgan,
 }

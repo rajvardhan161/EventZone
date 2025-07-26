@@ -255,7 +255,87 @@ const loginOrganizer = async (req, res) => {
 };
 
 
+
+const getStaffProfile = async (req, res) => {
+  try {
+    const staffId = req.user?.id;
+
+    if (!staffId) {
+      return res.status(401).json({ message: 'Unauthorized: No staff ID found in token' });
+    }
+
+    const staff = await OrganizerAccountModel.findById(staffId).select('-password');
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff not found' });
+    }
+
+    res.status(200).json({ profile: staff });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get profile', error: error.message });
+  }
+};
+
+
+
+const updateOrganizerProfile = async (req, res) => {
+  try {
+    const organizerId = req.user?.id;
+
+    if (!organizerId) {
+      return res.status(401).json({ message: 'Unauthorized: No organizer ID found in token' });
+    }
+
+    const organizer = await OrganizerAccountModel.findById(organizerId);
+    if (!organizer) {
+      return res.status(404).json({ message: 'Organizer not found' });
+    }
+
+    // Fields allowed to update
+    const {
+      name,
+      gender,
+      age,
+      address,
+      bio,
+      skills,
+      course,
+      year
+    } = req.body;
+
+    // Only update allowed fields
+    if (name) organizer.name = name;
+    if (gender) organizer.gender = gender;
+    if (age) organizer.age = age;
+    if (address) organizer.address = address;
+    if (bio) organizer.bio = bio;
+    if (Array.isArray(skills)) organizer.skills = skills;
+    if (organizer.post === 'student') {
+      if (course) organizer.course = course;
+      if (year) organizer.year = year;
+    }
+
+    await organizer.save();
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      updatedProfile: {
+        name: organizer.name,
+        gender: organizer.gender,
+        age: organizer.age,
+        address: organizer.address,
+        bio: organizer.bio,
+        skills: organizer.skills,
+        course: organizer.course,
+        year: organizer.year
+      }
+    });
+  } catch (error) {
+    console.error('Error updating organizer profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export {createOrganizerAccount,getAllOrganizers,getOrganizerById,updateOrganizer,deleteOrganizer,blockOrganizer,
-  loginOrganizer,
+  loginOrganizer,getStaffProfile,updateOrganizerProfile,
 
 }

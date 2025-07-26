@@ -28,6 +28,13 @@ import OrganizerPage from './pages/OrganizerPage';
 import CreateOrganizerForm from './pages/StaffForm';
 import AllOrganizers from './pages/Allstaff';
 import OrganizerDashboard from './pages/staff/OrganizerDashboard';
+import OrganizerProfile from './pages/staff/OrganizerProfile';
+import OrganizerEditProfile from './pages/staff/OrganizerEditProfile';
+import EventmanageO from './pages/staff/eventmanageO';
+import EventManage from './pages/staff/EventManage';
+import EventDetailManage from './pages/staff/EventDetailManage';
+ 
+import EventDetails from './pages/Evendetails';
 const ThemedAppContent = () => {
   const { currentTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -90,6 +97,7 @@ const ThemedAppContent = () => {
             <Route path="/event-requests" element={<AllEventRequestsPage />} /> 
             <Route path="/event-requests/:requestId" element={<EventRequestDetailPage />} />
             <Route path="/create-event" element={<EventManagement />} /> 
+            <Route path='/event-details/:id' element={<EventDetails/>}/>
             <Route path="/applications" element={<AdminApplicationsView/>}/>
             <Route path="/events/upcoming" element={<UpcomingEvents />} />
             <Route path="/events/:eventId/applications" element={<AdminEventApplicationsView />} />
@@ -104,6 +112,11 @@ const ThemedAppContent = () => {
             <Route path="/create" element={<CreateOrganizerForm />} />
             <Route path='/AllOrganizer' element={<AllOrganizers/>}/>
             <Route path='/Dashboard' element={<OrganizerDashboard/>}/>
+            <Route path='/profile' element={<OrganizerProfile/>}/>
+            <Route path='/edit' element={<OrganizerEditProfile/>}/>
+            <Route path='/organizer/create-event' element={<EventmanageO/>}/>
+            <Route path='/my-events' element={<EventManage/>}/>
+            <Route path='/my-events/:id' element={<EventDetailManage/>}/>
           </Routes>
         </main>
       </div>

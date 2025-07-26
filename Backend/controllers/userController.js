@@ -570,6 +570,7 @@ const applyForEvent = async (req, res) => {
       gender: user.gender,
       phone_no: user.phone_no,
       course: user.course,
+      userstudent_id: user.student_id,
       profile_photo: user.profile_photo,
       eventName: event.eventName,
       eventDate: event.eventDate,
@@ -586,10 +587,23 @@ const applyForEvent = async (req, res) => {
     await newApplication.save();
 
     await EventModel.findByIdAndUpdate(
-      eventId,
-      { $inc: { currentApplications: 1 } },
-      { new: true }
-    );
+  eventId,
+  {
+    $push: {
+      participants: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone_no,
+        studentId: user.student_id,
+        profile_photo: user.profile_photo
+      }
+    },
+    $inc: { currentApplications: 1 }
+  },
+  { new: true }
+);
+
 
     res.status(201).json({
       message: 'Application submitted successfully!',

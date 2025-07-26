@@ -22,8 +22,8 @@ const ColorPicker = ({ title, colors, selectedColor, onColorChange, theme }) => 
           key={color}
           onClick={() => onColorChange(color)}
           className={
-            `w-6 h-6 rounded-full cursor-pointer transition-transform transform hover:scale-110
-             ${selectedColor === color ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`
+            `w-6 h-6 rounded-full cursor-pointer transition-transform transform hover:scale-110 ` +
+            `${selectedColor === color ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`
           }
           style={{
             backgroundColor: color,
@@ -37,7 +37,7 @@ const ColorPicker = ({ title, colors, selectedColor, onColorChange, theme }) => 
 );
 
 const Navbar = ({ onToggleSidebar }) => {
-  const { token, setToken } = useContext(AdminContext);
+  const { token, setToken, organizer, setOrganizer } = useContext(AdminContext);
   const navigate = useNavigate();
   const {
     currentTheme,
@@ -49,10 +49,9 @@ const Navbar = ({ onToggleSidebar }) => {
     resetTheme,
   } = useTheme();
 
-  // The key is "organizer" (not "organizerToken") in your storage as per your screenshot
-  const organizerToken = localStorage.getItem('organizer');
+  // Use organizer token from context instead of localStorage
   const isAdmin = !!token;
-  const isOrganizer = !!organizerToken;
+  const isOrganizer = !!organizer;
 
   const [showAdminMenu1, setShowAdminMenu1] = useState(false);
   const themeButtonRef = useRef(null);
@@ -83,11 +82,14 @@ const Navbar = ({ onToggleSidebar }) => {
 
   const logout = () => {
     setToken(null);
-    localStorage.removeItem('token');       // admin
-    localStorage.removeItem('organizer');
+    setOrganizer(null); // clear organizer token from context
+
+    localStorage.removeItem('token');      // admin
+    localStorage.removeItem('organizer');  // organizer
     localStorage.removeItem('userType');   // organizer
-    localStorage.removeItem('organizerData'); 
-    localStorage.removeItem('appTheme'); 
+    localStorage.removeItem('organizerData');
+    localStorage.removeItem('appTheme');
+
     setShowAdminMenu1(false);
     navigate('/');
   };
@@ -161,33 +163,51 @@ const Navbar = ({ onToggleSidebar }) => {
               <h3 className="text-lg font-bold mb-4" style={{ color: currentTheme.textColor }}>
                 Customize Theme
               </h3>
-              <ColorPicker title="Text Color" colors={themeOptions.textColors}
-                           selectedColor={currentTheme.textColor}
-                           onColorChange={handleTextColorChange} theme={currentTheme} />
-              <ColorPicker title="Background Color" colors={themeOptions.bgColors}
-                           selectedColor={currentTheme.bgColor}
-                           onColorChange={(color) => handleBgColorChange(color, 'main')}
-                           theme={currentTheme} />
-              <ColorPicker title="Sidebar Color" colors={themeOptions.sidebarColors}
-                           selectedColor={currentTheme.sidebarBgColor}
-                           onColorChange={(color) => handleBgColorChange(color, 'sidebar')}
-                           theme={currentTheme} />
-              <ColorPicker title="Navbar Color" colors={themeOptions.navbarColors}
-                           selectedColor={currentTheme.navbarBgColor}
-                           onColorChange={(color) => handleBgColorChange(color, 'navbar')}
-                           theme={currentTheme} />
-              <hr className="my-3" style={{
-                borderColor: currentTheme.textColor === '#FFFFFF'
-                    ? 'rgba(255,255,255,0.2)'
-                    : 'rgba(0,0,0,0.1)'
-              }}/>
+              <ColorPicker
+                title="Text Color"
+                colors={themeOptions.textColors}
+                selectedColor={currentTheme.textColor}
+                onColorChange={handleTextColorChange}
+                theme={currentTheme}
+              />
+              <ColorPicker
+                title="Background Color"
+                colors={themeOptions.bgColors}
+                selectedColor={currentTheme.bgColor}
+                onColorChange={(color) => handleBgColorChange(color, 'main')}
+                theme={currentTheme}
+              />
+              <ColorPicker
+                title="Sidebar Color"
+                colors={themeOptions.sidebarColors}
+                selectedColor={currentTheme.sidebarBgColor}
+                onColorChange={(color) => handleBgColorChange(color, 'sidebar')}
+                theme={currentTheme}
+              />
+              <ColorPicker
+                title="Navbar Color"
+                colors={themeOptions.navbarColors}
+                selectedColor={currentTheme.navbarBgColor}
+                onColorChange={(color) => handleBgColorChange(color, 'navbar')}
+                theme={currentTheme}
+              />
+              <hr
+                className="my-3"
+                style={{
+                  borderColor:
+                    currentTheme.textColor === '#FFFFFF'
+                      ? 'rgba(255,255,255,0.2)'
+                      : 'rgba(0,0,0,0.1)',
+                }}
+              />
               <button
                 onClick={resetTheme}
                 className="w-full text-center px-4 py-2 rounded-md text-sm transition hover:opacity-80"
                 style={{
-                  backgroundColor: currentTheme.textColor === '#FFFFFF'
-                    ? 'rgba(255,255,255,0.1)'
-                    : 'rgba(0,0,0,0.05)',
+                  backgroundColor:
+                    currentTheme.textColor === '#FFFFFF'
+                      ? 'rgba(255,255,255,0.1)'
+                      : 'rgba(0,0,0,0.05)',
                   color: currentTheme.textColor,
                 }}
               >
@@ -201,12 +221,9 @@ const Navbar = ({ onToggleSidebar }) => {
           onClick={logout}
           className="text-xs sm:text-sm px-4 py-1.5 rounded-full transition"
           style={{
-            backgroundColor: currentTheme.textColor === '#FFFFFF'
-              ? 'rgba(255,255,255,0.8)'
-              : 'rgba(0,0,0,0.6)',
-            color: currentTheme.textColor === '#FFFFFF'
-              ? '#000000'
-              : '#FFFFFF',
+            backgroundColor:
+              currentTheme.textColor === '#FFFFFF' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.6)',
+            color: currentTheme.textColor === '#FFFFFF' ? '#000000' : '#FFFFFF',
           }}
         >
           Logout
@@ -217,4 +234,3 @@ const Navbar = ({ onToggleSidebar }) => {
 };
 
 export default Navbar;
-

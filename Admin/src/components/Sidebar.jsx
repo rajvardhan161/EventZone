@@ -95,20 +95,21 @@ const Sidebar = () => {
     {
       label: 'Dashboard',
       links: [
-        { to: '/organizer-dashboard', icon: assets.home_icon, label: 'Overview' },
+        { to: '/dashboard', icon: assets.home_icon, label: 'Overview' },
+        
       ],
     },
     {
       label: 'My Events',
       links: [
-        { to: '/organizer/my-events', icon: assets.list_icon, label: 'My Events List' },
+        { to: '/my-events', icon: assets.list_icon, label: 'My Events List' },
         { to: '/organizer/create-event', icon: assets.add_icon, label: 'Create New Event' },
       ],
     },
     {
       label: 'Account',
       links: [
-        { to: '/organizer/profile', icon: assets.people_icon, label: 'My Profile' },
+        { to: '/profile', icon: assets.people_icon, label: 'My Profile' },
       ],
     },
   ];

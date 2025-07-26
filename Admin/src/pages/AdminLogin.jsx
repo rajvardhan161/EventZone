@@ -18,8 +18,8 @@ const gradientColors = [
 ];
 
 const AdminLogin = () => {
-  // Use a generic name for context, as it handles both admin and organizer tokens
-  const { backendUrl, token, setToken,organizer } = useContext(AdminContext);
+  // Include userType and setUserType from context
+  const { backendUrl, token, setToken, organizer, setOrganizer, userType, setUserType } = useContext(AdminContext);
   const { currentTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -37,17 +37,17 @@ const AdminLogin = () => {
   const [bgGradient, setBgGradient] = useState(gradientColors[0]);
   const [nextBgGradientIndex, setNextBgGradientIndex] = useState(1);
 
-  // --- Updated: Redirect to appropriate dashboard if already logged in ---
+  // --- Redirect if already logged in ---
   useEffect(() => {
     if (token || organizer) {
-      const userType = localStorage.getItem('userType');
-      if (userType === 'admin') {
+      const savedUserType = localStorage.getItem('userType');
+      if (savedUserType === 'admin') {
         navigate('/admin-dashboard');
-      } else if (userType === 'organizer') {
-        navigate('/Dashboard'); // New redirect for organizers
+      } else if (savedUserType === 'organizer') {
+        navigate('/Dashboard');
       }
     }
-  }, [token,organizer, navigate]);
+  }, [token, organizer, navigate]);
 
   // --- Background Animation Logic ---
   useEffect(() => {
@@ -55,11 +55,10 @@ const AdminLogin = () => {
       setBgGradient(gradientColors[nextBgGradientIndex]);
       setNextBgGradientIndex((prevIndex) => (prevIndex + 1) % gradientColors.length);
     }, 5000);
-
     return () => clearInterval(intervalId);
   }, [nextBgGradientIndex]);
 
-  // --- Updated: Unified login handler for both Admin and Organizer ---
+  // --- Login Handler ---
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -83,6 +82,8 @@ const AdminLogin = () => {
           localStorage.setItem('token', response.data.token);
           localStorage.setItem('userType', 'admin'); // Store user type
           setToken(response.data.token);
+          setUserType('admin'); // Set userType in context
+
           toast.success('Admin login successful!');
           navigate('/admin-dashboard');
         } else {
@@ -92,17 +93,17 @@ const AdminLogin = () => {
       } else { // Organizer Login
         url = `${backendUrl}/api/organizer/organizers/login`;
         const response = await axios.post(url, payload);
-        
-        // Based on the provided backend code for organizers
+
         if (response.status === 200 && response.data.token) {
           localStorage.setItem('organizer', response.data.token);
-          localStorage.setItem('userType', 'organizer'); // Store user type
-          localStorage.setItem('organizerData', JSON.stringify(response.data.organizer)); // Store organizer details
-          setToken(response.data.token);
+          localStorage.setItem('userType', 'organizer');
+          localStorage.setItem('organizerData', JSON.stringify(response.data.organizer));
+          setOrganizer(response.data.token); // Set organizer token in context
+          setUserType('organizer'); // Set userType in context
+
           toast.success('Organizer login successful!');
-          navigate('/organizer-dashboard'); // Redirect to organizer dashboard
+          navigate('/organizer-dashboard');
         } else {
-          // Fallback for unexpected successful responses without a token
           setError(response.data.message || 'Login failed. Please check your credentials.');
           toast.error(response.data.message || 'Login failed.');
         }
@@ -116,9 +117,8 @@ const AdminLogin = () => {
       setIsLoading(false);
     }
   };
-  
-  // ******** FIX WAS HERE ********
-  // Dynamic styles based on theme (Restored from original code)
+
+  // Dynamic styles based on theme
   const inputStyles = {
     backgroundColor: currentTheme.bgColor || '#FFFFFF',
     color: currentTheme.textColor || '#333333',
@@ -129,7 +129,6 @@ const AdminLogin = () => {
   const buttonLoadingStyles = `bg-gray-400 cursor-not-allowed`;
   const buttonDefaultStyles = `bg-green-500 hover:bg-green-600 focus:ring-green-500`;
   const buttonActiveStyles = isLoading ? buttonLoadingStyles : buttonDefaultStyles;
-  // ******************************
 
   return (
     <div
@@ -139,12 +138,17 @@ const AdminLogin = () => {
       <style>{`@keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }`}</style>
 
       <div className="flex flex-col md:flex-row w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden border"
-        style={{ borderColor: currentTheme.textColor === '#FFFFFF' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)', backgroundColor: currentTheme.navbarBgColor || '#FFFFFF', color: currentTheme.textColor || '#333333', boxShadow: `0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)` }}
+        style={{
+          borderColor: currentTheme.textColor === '#FFFFFF' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)',
+          backgroundColor: currentTheme.navbarBgColor || '#FFFFFF',
+          color: currentTheme.textColor || '#333333',
+          boxShadow: `0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)`
+        }}
       >
         {/* LEFT SECTION (WELCOME/BRANDING) */}
         <div className="md:w-1/2 flex flex-col justify-between items-center p-8 text-white rounded-l-lg relative" style={{ backgroundColor: currentTheme.primary || '#1E40AF' }}>
-           {/* Decorative elements */}
-           <div className="absolute inset-0 overflow-hidden rounded-l-lg">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 overflow-hidden rounded-l-lg">
             <div className="absolute top-0 left-0 w-full h-full bg-green-500 opacity-70 rounded-l-lg blur-xl"></div>
             <div className="absolute bottom-[-30%] left-[-15%] w-64 h-64 bg-white opacity-20 rounded-full transform scale-150 animate-pulse"></div>
           </div>
@@ -165,7 +169,7 @@ const AdminLogin = () => {
         {/* RIGHT SECTION (LOGIN FORM) */}
         <div className="md:w-1/2 flex flex-col justify-center items-center p-8 md:p-10">
           <div className="w-full max-w-sm">
-            {/* --- New: Login Type Switcher --- */}
+            {/* --- Login Type Switcher --- */}
             <div className="flex border border-gray-300 rounded-lg p-1 mb-6">
               <button
                 onClick={() => { setLoginType('admin'); setError(''); }}
@@ -199,7 +203,7 @@ const AdminLogin = () => {
                 </div>
               )}
 
-              {/* Email Input (reused) */}
+              {/* Email Input */}
               <div className="relative">
                 <label htmlFor="auth-email-login" className="sr-only">Email</label>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -218,7 +222,7 @@ const AdminLogin = () => {
                 />
               </div>
 
-              {/* Password Input (reused) */}
+              {/* Password Input */}
               <div className="relative">
                 <label htmlFor="auth-password-login" className="sr-only">Password</label>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

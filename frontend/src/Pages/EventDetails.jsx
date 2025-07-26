@@ -308,7 +308,7 @@ const EventDetails = () => {
             <img
               src={event.eventImageURL}
               alt={event.eventName || 'Event Image'}
-              className="w-full max-w-3xl h-64 md:h-96 object-cover rounded-lg shadow-xl cursor-pointer" // Added cursor-pointer
+              className="w-full max-w-3xl h-85 md:h-108 object-cover rounded-lg shadow-xl cursor-pointer" // Added cursor-pointer
               onClick={() => openImageModal(event.eventImageURL)} // Click handler for modal
             />
           </div>
@@ -549,7 +549,7 @@ const EventDetails = () => {
         isOpen={isImageModalOpen}
         onRequestClose={closeImageModal}
         contentLabel="Event Image"
-        className={`ReactModal__Content p-4 rounded-lg shadow-xl max-w-3xl mx-auto my-10 ${modalContentBackgroundColor || 'bg-white'}`} // Use white background for image
+className={`ReactModal__Content p-4 rounded-lg shadow-xl w-full max-w-5xl mx-2 sm:mx-auto my-10 ${modalContentBackgroundColor || 'bg-white'}`}
         overlayClassName={`ReactModal__Overlay fixed inset-0 flex items-center justify-center z-50 ${modalOverlayColor || 'bg-black bg-opacity-75'}`}
       >
         <div className="flex justify-between items-center mb-4">
@@ -559,10 +559,11 @@ const EventDetails = () => {
         <div className="text-center">
           {selectedImageUrl && (
             <img
-              src={selectedImageUrl}
-              alt="Full Screen Event Image"
-              className="max-w-full max-h-[75vh] object-contain mx-auto rounded-md" // Ensure image fits within modal
-            />
+  src={selectedImageUrl}
+  alt="Full Screen Event Image"
+  className="w-auto h-auto max-w-[90vw] max-h-[80vh] object-contain mx-auto rounded-md"
+/>
+
           )}
         </div>
       </Modal>

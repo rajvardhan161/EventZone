@@ -2,6 +2,7 @@ import express from 'express'
 import { adminToggleSubscription, bulkUpdateApplicationStatus, deleteUser, getAllUsers, getApplications, getApplicationsByEvent, getApplicationStats, getApplicationSummary, getEventCount, getRecentApplications, getUpcomingEvents, getUpcomingEventsCount, getUserById, getUserCount, initiateRefund, loginAdmin, toggleUserBlock, updateApplicationStatus, updateApplicationStatuss, updatePaymentStatus, updateUserRole } from '../controllers/adminController.js'
 import authAdmin from '../middlewares/authAdmin.js';
 import { adminGetAllEventRequests, adminGetEventRequestById, adminReplyToEventRequest, getAllInquiries, getInquiryById, replyToInquiry } from '../controllers/contactController.js';
+import { getEventByIdorgan } from '../controllers/eventController.js';
  
 const adminRouter =express.Router()
 
@@ -38,6 +39,7 @@ adminRouter.post('/applications/bulk-action',bulkUpdateApplicationStatus)
 adminRouter.post('/:applicationId/refund', initiateRefund);
 adminRouter.get('/upcoming', authAdmin, getUpcomingEvents);
 adminRouter.get('/upcoming/count', getUpcomingEventsCount);
+adminRouter.get('/eventss/:id',authAdmin, getEventByIdorgan);
 
   
 export default adminRouter

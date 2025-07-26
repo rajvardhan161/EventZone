@@ -9,6 +9,7 @@ const AdminContextProvider = (props) =>{
    const [organizer, setOrganizer] = useState(localStorage.getItem('organizer')?localStorage.getItem('organizer'):'')
     const [dashData, setDashData] = useState(false)
     
+  const [userType, setUserType] = useState(localStorage.getItem('userType') || null);
 
 
     const backendUrl= import.meta.env.VITE_BACKEND_URL
@@ -20,7 +21,7 @@ const AdminContextProvider = (props) =>{
     
 
     const value = {
-        token,setToken,dashData,setDashData,backendUrl,setOrganizer,organizer,
+        token,setToken,dashData,setDashData,backendUrl,setOrganizer,organizer,setUserType,
     }
     return (
         <AdminContext.Provider value={value}>

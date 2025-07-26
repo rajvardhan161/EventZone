@@ -4,9 +4,11 @@ import React, { useState, useEffect, useContext, useCallback, useRef } from 'rea
 import { AdminContext } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext'; // Assuming this path
 import debounce from 'lodash.debounce'; // For debouncing search
+import { useNavigate } from 'react-router-dom';
 
 const EventManagement = () => {
   const { backendUrl, token } = useContext(AdminContext);
+  const navigate = useNavigate();
   const { currentTheme } = useTheme(); // Get the current theme
 
   // --- Theme-related styles ---
@@ -486,8 +488,8 @@ const EventManagement = () => {
     }
 
     if (formData.isPaid && (formData.price === null || formData.price === undefined || String(formData.price).trim() === '' || parseFloat(formData.price) < 0)) {
-        alert('Please enter a valid price for a paid event.');
-        return;
+      alert('Please enter a valid price for a paid event.');
+      return;
     }
 
     const limitAsNumber = formData.participantLimit === '' ? null : parseInt(formData.participantLimit, 10);
@@ -549,8 +551,8 @@ const EventManagement = () => {
 
   const openQrCodeModal = (qrCodeUrl) => {
     if (!qrCodeUrl) {
-        setError("QR code image not available.");
-        return;
+      setError("QR code image not available.");
+      return;
     }
     setQrCodeImageUrl(qrCodeUrl);
     setQrCodeModalOpen(true);
@@ -695,6 +697,12 @@ const EventManagement = () => {
                       >
                         Delete
                       </button>
+                      <button
+                        onClick={() => navigate(`/event-details/${event._id}`)}
+                        className={`focus:outline-none px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 ${currentTheme === 'dark' ? 'bg-indigo-700 hover:bg-indigo-800' : ''}`}
+                      >
+                        View Details
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -720,7 +728,7 @@ const EventManagement = () => {
                   ×
                 </button>
               </div>
-              
+
               <div className="relative p-6 flex-auto overflow-y-auto max-h-[75vh]">
                 <form onSubmit={handleSubmit}>
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -827,7 +835,7 @@ const EventManagement = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <label className={`block text-sm font-bold mb-2 ${currentThemeClasses.text}`} htmlFor="organizerPhone">Organizer Phone</label>
                     <input
@@ -879,7 +887,7 @@ const EventManagement = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="mb-6">
                     <label className={`block text-sm font-bold mb-2 ${currentThemeClasses.text}`}>QR Code Image</label>
                     <input

@@ -29,3 +29,6 @@ const OrgsnizerContextProvider = (props) =>{
           </OrgsnizerContext.Provider>
       )
 }
+
+
+export default OrgsnizerContextProvider
