@@ -2,14 +2,17 @@ import React, { useEffect, useState, useContext, useCallback, useMemo } from 're
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminContext } from '../context/AdminContext';
 import { useTheme } from '../context/ThemeContext';
-import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaArrowLeft, FaEdit, FaTrash, FaTimes, FaSearch, FaTicketAlt, FaUserCheck, FaBullseye } from 'react-icons/fa';
+import {
+  FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaArrowLeft, FaEdit, FaTrash, FaTimes,
+  FaSearch, FaTicketAlt, FaUserCheck, FaBullseye, FaSave, FaSpinner
+} from 'react-icons/fa'; // Added FaSave, FaSpinner
 import { format } from 'date-fns';
 import axios from 'axios';
 import Modal from 'react-modal';
 
 Modal.setAppElement('#root');
 
-// Helper functions and sub-components
+// Helper functions and sub-components (these remain the same)
 const safeFormatDate = (dateString, formatString = 'PPPPp') => {
   try {
     if (!dateString || isNaN(new Date(dateString))) return 'Date not available';
@@ -161,21 +164,69 @@ const EventDetails = () => {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // States for edit mode and update operation
+  const [isEditing, setIsEditing] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
+
+  // Form data states
+  const [formData, setFormData] = useState({
+    eventName: '',
+    eventDescription: '',
+    eventDate: '',
+    eventEndDate: '',
+    eventTime: '',
+    location: '',
+    isPaid: false,
+    price: '',
+    participantLimit: '',
+    allowDutyLeave: false,
+  });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [selectedQrCode, setSelectedQrCode] = useState(null);
+
+  // CSS Classes for consistency
+  const themeClasses = currentTheme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800';
+  const inputClasses = "w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400";
+  const labelClasses = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+  const checkboxContainerClasses = "flex items-center space-x-2";
+  const checkboxClasses = "form-checkbox h-5 w-5 text-indigo-600 rounded dark:bg-gray-600 dark:border-gray-500";
+
+
   const fetchEventDetails = useCallback(async () => {
-    // FIX: Removed the '!organizer' check as 'organizer' is not defined here.
-    // The authentication relies on the 'token' passed in the headers.
     if (!id) {
       setError("Event ID is missing.");
       setLoading(false);
       return;
     }
+    setLoading(true);
     setError(null);
     try {
       const response = await axios.get(`${backendUrl}/api/admin/eventss/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Ensure the correct data path if backend returns it nested
-      setEvent(response.data.event || response.data);
+      const fetchedEvent = response.data.event || response.data;
+      setEvent(fetchedEvent);
+
+      // Populate form data when event details are fetched
+      setFormData({
+        eventName: fetchedEvent.eventName || '',
+        eventDescription: fetchedEvent.eventDescription || '',
+        eventDate: fetchedEvent.eventDate ? new Date(fetchedEvent.eventDate).toISOString().split('T')[0] : '',
+        eventEndDate: fetchedEvent.eventEndDate ? new Date(fetchedEvent.eventEndDate).toISOString().split('T')[0] : '',
+        eventTime: fetchedEvent.eventTime || '',
+        location: fetchedEvent.location || '',
+        isPaid: fetchedEvent.isPaid || false,
+        price: fetchedEvent.price || '',
+        participantLimit: fetchedEvent.participantLimit || '',
+        allowDutyLeave: fetchedEvent.allowDutyLeave || false,
+      });
+      // Clear file inputs, as current files are linked to the fetched event
+      setSelectedImage(null);
+      setSelectedVideo(null);
+      setSelectedQrCode(null);
+
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch event details.';
       console.error('Error fetching event details:', errorMessage);
@@ -183,7 +234,7 @@ const EventDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, backendUrl, token]); // FIX: Removed 'organizer' from dependency array
+  }, [id, backendUrl, token]);
 
   useEffect(() => {
     fetchEventDetails();
@@ -191,8 +242,90 @@ const EventDetails = () => {
 
   const latestParticipants = useMemo(() => {
     if (!event?.participants) return [];
-    return [...(event.participants || [])].reverse().slice(0, 5); // Added fallback for event.participants
+    return [...(event.participants || [])].reverse().slice(0, 5);
   }, [event]);
+
+  // Handle form field changes
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  // Handle file input changes
+  const handleFileChange = (e, fileType) => {
+    const file = e.target.files[0];
+    if (fileType === 'image') setSelectedImage(file);
+    else if (fileType === 'video') setSelectedVideo(file);
+    else if (fileType === 'qrCode') setSelectedQrCode(file);
+  };
+
+  // Handle form submission for update
+  const handleUpdateEvent = async (e) => {
+    e.preventDefault(); // Prevent default browser form submission
+
+    setUpdateLoading(true);
+    setUpdateError(null);
+
+    const dataToSend = new FormData();
+
+    // Append all form data fields
+    for (const key in formData) {
+      if (formData.hasOwnProperty(key)) {
+        // Convert boolean to string for FormData
+        if (typeof formData[key] === 'boolean') {
+          dataToSend.append(key, String(formData[key]));
+        } else {
+          dataToSend.append(key, formData[key]);
+        }
+      }
+    }
+
+    // Append files if selected
+    if (selectedImage) dataToSend.append('image', selectedImage);
+    if (selectedVideo) dataToSend.append('video', selectedVideo);
+    if (selectedQrCode) dataToSend.append('qrCode', selectedQrCode);
+
+    try {
+      const response = await axios.put(`${backendUrl}/api/event/update/${id}`, dataToSend, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // 'Content-Type': 'multipart/form-data' is automatically set by axios for FormData
+        },
+      });
+      setEvent(response.data.event); // Update the main event state with the new data
+      setIsEditing(false); // Exit edit mode
+      setUpdateError(null); // Clear any previous update errors
+
+      // Re-populate formData and clear selected files after successful update
+      setFormData({
+        eventName: response.data.event.eventName || '',
+        eventDescription: response.data.event.eventDescription || '',
+        eventDate: response.data.event.eventDate ? new Date(response.data.event.eventDate).toISOString().split('T')[0] : '',
+        eventEndDate: response.data.event.eventEndDate ? new Date(response.data.event.eventEndDate).toISOString().split('T')[0] : '',
+        eventTime: response.data.event.eventTime || '',
+        location: response.data.event.location || '',
+        isPaid: response.data.event.isPaid || false,
+        price: response.data.event.price || '',
+        participantLimit: response.data.event.participantLimit || '',
+        allowDutyLeave: response.data.event.allowDutyLeave || false,
+      });
+      setSelectedImage(null);
+      setSelectedVideo(null);
+      setSelectedQrCode(null);
+
+      alert('Event updated successfully!');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to update event.';
+      console.error('Error updating event:', errorMessage);
+      setUpdateError(errorMessage);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -208,7 +341,7 @@ const EventDetails = () => {
         <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md">
           <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">An Error Occurred</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
-          <button 
+          <button
             onClick={() => navigate('/create-event')}
             className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold"
           >
@@ -229,158 +362,417 @@ const EventDetails = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="mb-8">
-          {/* Adjusted navigation to '/organizer/event-manage' for consistency */}
           <button onClick={() => navigate('/create-event')} className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline mb-4 font-semibold">
             <FaArrowLeft />
             Back to All Events
           </button>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-black">{event.eventName}</h1> {/* Changed dark:text-black to dark:text-white for better dark mode readability */}
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">{event.eventName}</h1>
               <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2 text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-2"><FaCalendarAlt /> {safeFormatDate(event.eventDate)}</span>
                 <span className="flex items-center gap-2"><FaMapMarkerAlt /> {event.location || 'Location TBD'}</span>
               </div>
             </div>
-            {/* Edit/Delete buttons are commented out, which is fine if not implemented yet */}
-            {/* <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg font-semibold transition"><FaEdit /> Edit</button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 rounded-lg font-semibold transition"><FaTrash /> Delete</button>
-            </div> */}
+            <div className="flex gap-3">
+              {/* Edit Button - Toggles isEditing state */}
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg font-semibold transition text-gray-800 dark:text-white"
+              >
+                <FaEdit /> Edit
+              </button>
+              {/* Optional: Delete button, uncomment if you implement delete functionality */}
+              {/* <button className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 rounded-lg font-semibold transition"><FaTrash /> Delete</button> */}
+            </div>
           </div>
         </div>
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard icon={<FaTicketAlt size={22} />} title="Event Type" value={event.isPaid ? `Paid (₹${event.price})` : 'Free'} />
-          <StatCard icon={<FaBullseye size={22} />} title="Capacity" value={event.participantLimit || 'Unlimited'} />
-          <StatCard icon={<FaUserCheck size={22} />} title="Registered" value={event.currentApplications ?? 0} />
-          <StatCard icon={<FaUsers size={22} />} title="Slots Remaining" value={event.participantLimit ? (event.participantLimit - (event.currentApplications ?? 0)) : '∞'} />
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Details, Description, Participants */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-              <img
-                src={event.eventImageURL || 'https://via.placeholder.com/800x400?text=Event+Image'}
-                alt={event.eventName}
-                className="w-full h-auto max-h-full object-cover rounded-lg mb-6"
-              />
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Event Description</h2>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{event.eventDescription}</p>
+        {/* Conditional Rendering: Show form if isEditing is true, else show details */}
+        {isEditing ? (
+          <div className={`p-6 rounded-xl shadow-lg mb-8 ${themeClasses}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Event</h2>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setUpdateError(null); // Clear any previous update errors
+                  fetchEventDetails(); // Re-fetch to reset form to original values if cancelled
+                }}
+                className="text-gray-500 hover:text-gray-800 dark:hover:text-white transition"
+              >
+                <FaTimes size={24} />
+              </button>
             </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Event Details</h2>
 
-              <div className="space-y-2">
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">Event Name: </span>
-                  {event.eventName}
-                </p>
+            <form onSubmit={handleUpdateEvent} className="space-y-6">
+              {/* Event Name */}
+              <div>
+                <label htmlFor="eventName" className={labelClasses}>Event Name</label>
+                <input
+                  type="text"
+                  id="eventName"
+                  name="eventName"
+                  value={formData.eventName}
+                  onChange={handleChange}
+                  className={inputClasses}
+                  required
+                />
+              </div>
 
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">Organizer Name: </span> {/* Clarified label */}
-                  {event.organizerName}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">Organizer Email: </span> {/* Clarified label */}
-                  {event.organizerEmail}
-                </p>
+              {/* Event Description */}
+              <div>
+                <label htmlFor="eventDescription" className={labelClasses}>Event Description</label>
+                <textarea
+                  id="eventDescription"
+                  name="eventDescription"
+                  value={formData.eventDescription}
+                  onChange={handleChange}
+                  className={`${inputClasses} h-32`}
+                  required
+                />
+              </div>
 
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">Start Date: </span> {/* Clarified label */}
-                  {new Date(event.eventDate).toLocaleDateString()}
-                </p>
+              {/* Event Date & End Date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="eventDate" className={labelClasses}>Start Date</label>
+                  <input
+                    type="date"
+                    id="eventDate"
+                    name="eventDate"
+                    value={formData.eventDate}
+                    onChange={handleChange}
+                    className={inputClasses}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="eventEndDate" className={labelClasses}>End Date (Optional)</label>
+                  <input
+                    type="date"
+                    id="eventEndDate"
+                    name="eventEndDate"
+                    value={formData.eventEndDate}
+                    onChange={handleChange}
+                    className={inputClasses}
+                  />
+                </div>
+              </div>
 
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">Start Time: </span> {/* Clarified label */}
-                  {event.eventTime}
-                </p>
+              {/* Event Time */}
+              <div>
+                <label htmlFor="eventTime" className={labelClasses}>Event Time</label>
+                <input
+                  type="time"
+                  id="eventTime"
+                  name="eventTime"
+                  value={formData.eventTime}
+                  onChange={handleChange}
+                  className={inputClasses}
+                  required
+                />
+              </div>
 
-                {/* Only display End Date if it's different or meaningful for multi-day events */}
-                {event.eventEndDate && new Date(event.eventEndDate).toDateString() !== new Date(event.eventDate).toDateString() && (
-                    <p className="text-gray-600 dark:text-gray-300">
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">End Date: </span>
-                    {new Date(event.eventEndDate).toLocaleDateString()}
-                    </p>
-                )}
+              {/* Location */}
+              <div>
+                <label htmlFor="location" className={labelClasses}>Location</label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className={inputClasses}
+                  required
+                />
+              </div>
 
-
-                <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">Location: </span>
-                  {event.location}
-                </p>
-
-                <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200"> Duty Leave: </span>
-                  {event.allowDutyLeav ? 'Allowed' : 'Not Allowed'}
-                </p>
-
-                {event.eventVideoURL && (
-                  <div className="mt-4">
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">Event Video:</span>
-                    <video
-                      className="w-full mt-2 rounded-lg"
-                      src={event.eventVideoURL}
-                      controls
+              {/* Is Paid & Price */}
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className={checkboxContainerClasses}>
+                  <input
+                    type="checkbox"
+                    id="isPaid"
+                    name="isPaid"
+                    checked={formData.isPaid}
+                    onChange={handleChange}
+                    className={checkboxClasses}
+                  />
+                  <label htmlFor="isPaid" className={labelClasses}>Is Paid Event?</label>
+                </div>
+                {formData.isPaid && (
+                  <div className="flex-1">
+                    <label htmlFor="price" className={labelClasses}>Price (₹)</label>
+                    <input
+                      type="number"
+                      id="price"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      className={inputClasses}
+                      min="0"
+                      step="0.01"
+                      required={formData.isPaid}
                     />
                   </div>
                 )}
-
-                {event.qrCodeImageURL && (
-                  <div className="mt-4">
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">QR Code:</span>
-                    <img
-                      src={event.qrCodeImageURL}
-                      alt="QR Code"
-                      className="w-40 mt-2 rounded-lg"
-                    />
-                  </div>
-                )}
-
               </div>
-            </div>
 
-            {/* Latest Participants */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Participants</h2>
-                {event.participants?.length > 0 && (
-                  <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 text-sm bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 rounded-lg font-semibold transition">
-                    View All ({event.participants.length})
-                  </button>
+              {/* Participant Limit */}
+              <div>
+                <label htmlFor="participantLimit" className={labelClasses}>Participant Limit (leave empty for unlimited)</label>
+                <input
+                  type="number"
+                  id="participantLimit"
+                  name="participantLimit"
+                  value={formData.participantLimit}
+                  onChange={handleChange}
+                  className={inputClasses}
+                  min="1"
+                />
+              </div>
+
+              {/* Allow Duty Leave */}
+              <div className={checkboxContainerClasses}>
+                <input
+                  type="checkbox"
+                  id="allowDutyLeave"
+                  name="allowDutyLeave"
+                  checked={formData.allowDutyLeave}
+                  onChange={handleChange}
+                  className={checkboxClasses}
+                />
+                <label htmlFor="allowDutyLeave" className={labelClasses}>Allow Duty Leave?</label>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label htmlFor="image" className={labelClasses}>Event Image</label>
+                <input
+                  type="file"
+                  id="image"
+                  name="image"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, 'image')}
+                  className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900`}
+                />
+                {event.eventImageURL && !selectedImage && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Current: <a href={event.eventImageURL} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline">View Image</a> (Upload new to replace)</p>
+                )}
+                {selectedImage && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">New image selected: {selectedImage.name}</p>
                 )}
               </div>
-              {latestParticipants.length > 0 ? (
-                <ul className="space-y-4">
-                  {latestParticipants.map(p => (
-                    <li key={p._id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-500">
-                          {p.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-800 dark:text-white">{p.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{p.email}</p>
-                        </div>
-                      </div>
-                      <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{p.student_id}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400 py-4 text-center">No one has registered for this event yet.</p>
+
+              {/* Video Upload */}
+              <div>
+                <label htmlFor="video" className={labelClasses}>Event Video (Optional)</label>
+                <input
+                  type="file"
+                  id="video"
+                  name="video"
+                  accept="video/*"
+                  onChange={(e) => handleFileChange(e, 'video')}
+                  className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900`}
+                />
+                {event.eventVideoURL && !selectedVideo && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Current: <a href={event.eventVideoURL} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline">View Video</a> (Upload new to replace)</p>
+                )}
+                {selectedVideo && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">New video selected: {selectedVideo.name}</p>
+                )}
+              </div>
+
+              {/* QR Code Upload */}
+              <div>
+                <label htmlFor="qrCode" className={labelClasses}>QR Code Image (Optional)</label>
+                <input
+                  type="file"
+                  id="qrCode"
+                  name="qrCode"
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, 'qrCode')}
+                  className={`${inputClasses} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900`}
+                />
+                {event.qrCodeImageURL && !selectedQrCode && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Current: <a href={event.qrCodeImageURL} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline">View QR Code</a> (Upload new to replace)</p>
+                )}
+                {selectedQrCode && (
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">New QR code selected: {selectedQrCode.name}</p>
+                )}
+              </div>
+
+              {updateError && (
+                <div className="p-3 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg text-sm">
+                  Error: {updateError}
+                </div>
               )}
-            </div>
-          </div>
 
-          {/* Right Column (can be used for other info if needed) */}
-          <div className="lg:col-span-1">
-            {/* You can add more info cards or actions here */}
+              <div className="flex gap-4 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setUpdateError(null); // Clear error on cancel
+                    fetchEventDetails(); // Re-fetch to reset form to original values
+                  }}
+                  className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                  disabled={updateLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+                  disabled={updateLoading}
+                >
+                  {updateLoading ? (
+                    <>
+                      <FaSpinner className="animate-spin" /> Updating...
+                    </>
+                  ) : (
+                    <>
+                      <FaSave /> Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Stat Cards (display mode) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <StatCard icon={<FaTicketAlt size={22} />} title="Event Type" value={event.isPaid ? `Paid (₹${event.price})` : 'Free'} />
+              <StatCard icon={<FaBullseye size={22} />} title="Capacity" value={event.participantLimit || 'Unlimited'} />
+              <StatCard icon={<FaUserCheck size={22} />} title="Registered" value={event.currentApplications ?? 0} />
+              <StatCard icon={<FaUsers size={22} />} title="Slots Remaining" value={event.participantLimit ? (event.participantLimit - (event.currentApplications ?? 0)) : '∞'} />
+            </div>
+
+            {/* Main Content Grid (display mode) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column: Details, Description, Participants (display mode) */}
+              <div className="lg:col-span-2 space-y-8">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                  <img
+                    src={event.eventImageURL || 'https://via.placeholder.com/800x400?text=Event+Image'}
+                    alt={event.eventName}
+                    className="w-full h-auto max-h-full object-cover rounded-lg mb-6"
+                  />
+                  <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Event Description</h2>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{event.eventDescription}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                  <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Event Details</h2>
+
+                  <div className="space-y-2">
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">Event Name: </span>
+                      {event.eventName}
+                    </p>
+
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">Organizer Name: </span>
+                      {event.organizerName}
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">Organizer Email: </span>
+                      {event.organizerEmail}
+                    </p>
+
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">Start Date: </span>
+                      {new Date(event.eventDate).toLocaleDateString()}
+                    </p>
+
+                    <p className="text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">Start Time: </span>
+                      {event.eventTime}
+                    </p>
+
+                    {event.eventEndDate && new Date(event.eventEndDate).toDateString() !== new Date(event.eventDate).toDateString() && (
+                        <p className="text-gray-600 dark:text-gray-300">
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">End Date: </span>
+                        {new Date(event.eventEndDate).toLocaleDateString()}
+                        </p>
+                    )}
+
+                    <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">Location: </span>
+                      {event.location}
+                    </p>
+
+                    <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200"> Duty Leave: </span>
+                      {event.allowDutyLeave ? 'Allowed' : 'Not Allowed'}
+                    </p>
+
+                    {event.eventVideoURL && (
+                      <div className="mt-4">
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">Event Video:</span>
+                        <video
+                          className="w-full mt-2 rounded-lg"
+                          src={event.eventVideoURL}
+                          controls
+                        />
+                      </div>
+                    )}
+
+                    {event.qrCodeImageURL && (
+                      <div className="mt-4">
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">QR Code:</span>
+                        <img
+                          src={event.qrCodeImageURL}
+                          alt="QR Code"
+                          className="w-40 mt-2 rounded-lg"
+                        />
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+
+                {/* Latest Participants (display mode) */}
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Participants</h2>
+                    {event.participants?.length > 0 && (
+                      <button onClick={() => setIsModalOpen(true)} className="px-4 py-1.5 text-sm bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 rounded-lg font-semibold transition">
+                        View All ({event.participants.length})
+                      </button>
+                    )}
+                  </div>
+                  {latestParticipants.length > 0 ? (
+                    <ul className="space-y-4">
+                      {latestParticipants.map(p => (
+                        <li key={p._id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center font-bold text-gray-500">
+                              {p.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-800 dark:text-white">{p.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{p.email}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{p.student_id}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400 py-4 text-center">No one has registered for this event yet.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column (display mode) */}
+              <div className="lg:col-span-1">
+                {/* Add more info cards or actions here if needed for display mode */}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <ParticipantModal

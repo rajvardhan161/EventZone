@@ -25,7 +25,7 @@ const applicationSchema = new Schema({
     lowercase: true,
     trim: true,
   },
-  userstudent_id: {type: String, required: true,unique: true, trim: true,},
+  userstudent_id: {type: String, required: true,},
 
   // 🧑 Student Details
   gender: {

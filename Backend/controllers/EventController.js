@@ -169,16 +169,52 @@ const getEventById = async (req, res) => {
  * @param {Express.Request} req - The request object.
  * @param {Express.Response} res - The response object.
  */
- const updateEvent = async (req, res) => {
+
+const updateEvent = async (req, res) => {
   try {
     const eventId = req.params.id;
-    const updateData = req.body;
+    const updateData = { ...req.body }; // Clone to modify safely
 
-    // Basic update - you might need to handle file updates separately
-    // if you want to allow replacing images/videos.
-    // For file updates, you'd typically get the new files, upload them,
-    // get their URLs, and then update the event document. You'd also
-    // need to delete the old files from Cloudinary using their public_ids.
+    const { image, video, qrCode } = req.files || {};
+    let eventImageURL, eventVideoURL, qrCodeImageURL;
+
+    // Upload new image if provided
+    if (image && image[0]) {
+      const imageUploadResult = await uploadToCloudinary(image[0].path, 'event_images');
+      eventImageURL = imageUploadResult.url;
+      updateData.eventImageURL = eventImageURL;
+    }
+
+    // Upload new video if provided
+    if (video && video[0]) {
+      const videoUploadResult = await uploadToCloudinary(video[0].path, 'event_videos');
+      eventVideoURL = videoUploadResult.url;
+      updateData.eventVideoURL = eventVideoURL;
+    }
+
+    // Upload new QR code if provided
+    if (qrCode && qrCode[0]) {
+      const qrCodeUploadResult = await uploadToCloudinary(qrCode[0].path, 'qr_codes');
+      qrCodeImageURL = qrCodeUploadResult.url;
+      updateData.qrCodeImageURL = qrCodeImageURL;
+    }
+
+    // Type conversion (if values come as string from frontend)
+    if (typeof updateData.isPaid === 'string') {
+      updateData.isPaid = updateData.isPaid === 'true';
+    }
+
+    if (updateData.price) {
+      updateData.price = parseFloat(updateData.price);
+    }
+
+    if (updateData.participantLimit) {
+      updateData.participantLimit = parseInt(updateData.participantLimit);
+    }
+
+    if (typeof updateData.allowDutyLeave === 'string') {
+      updateData.allowDutyLeave = updateData.allowDutyLeave === 'true';
+    }
 
     const updatedEvent = await EventModel.findByIdAndUpdate(eventId, updateData, { new: true });
 
@@ -195,6 +231,7 @@ const getEventById = async (req, res) => {
     res.status(500).json({ message: 'Failed to update event', error: error.message });
   }
 };
+
 
 /**
  * Deletes an event.

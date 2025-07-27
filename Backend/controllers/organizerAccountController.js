@@ -145,32 +145,38 @@ if (skills) {
     res.status(500).json({ message: 'Error fetching organizer', error: error.message });
   }
 };
+
 const updateOrganizer = async (req, res) => {
   try {
     const organizerId = req.params.id;
     const updates = req.body;
 
-    // Optional: Upload new image to Cloudinary
     if (req.file) {
-      // Upload to Cloudinary
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: 'organizers',
       });
 
-      // Save the Cloudinary image URL
-      updates.image = result.secure_url;
+      updates.photoUrl = result.secure_url;
 
-      // Remove the temp file from local storage
-      fs.unlinkSync(req.file.path);
+      // Remove temp file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
     }
 
-    const updated = await OrganizerAccountModel.findByIdAndUpdate(organizerId, updates, { new: true });
+    const updated = await OrganizerAccountModel.findByIdAndUpdate(
+      organizerId,
+      updates,
+      { new: true }
+    );
 
-    if (!updated) return res.status(404).json({ message: 'Organizer not found' });
+    if (!updated) {
+      return res.status(404).json({ message: 'Organizer not found' });
+    }
 
     res.status(200).json({ message: 'Organizer updated successfully', updated });
-
   } catch (error) {
+    console.error('Update error:', error);
     res.status(500).json({ message: 'Update failed', error: error.message });
   }
 };

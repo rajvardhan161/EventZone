@@ -535,8 +535,6 @@ const getEventById = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch event', error: error.message });
   }
 };
-
-
 const applyForEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -548,13 +546,13 @@ const applyForEvent = async (req, res) => {
     }
 
     // Participant limit check
-    if (event.participantLimit !== null && event.participantLimit !== undefined && event.participantLimit >= 0) {
+    if (event.participantLimit !== null && event.participantLimit >= 0) {
       if (event.currentApplications >= event.participantLimit) {
         return res.status(409).json({ message: 'This event is currently full. You cannot apply at this time.' });
       }
     }
 
-    // Check for existing application
+    // Prevent duplicate application
     const existingApplication = await ApplicationModel.findOne({ eventId, userId });
     if (existingApplication) {
       return res.status(409).json({ message: 'You have already applied for this event.' });
@@ -562,6 +560,22 @@ const applyForEvent = async (req, res) => {
 
     const user = await userModel.findById(userId);
 
+    // Upload payment screenshot to Cloudinary (if present)
+    let paymentScreenshotURL = null;
+    if (req.file && req.file.path) {
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'event-payments',
+          resource_type: 'image',
+        });
+        paymentScreenshotURL = result.secure_url;
+      } catch (cloudinaryError) {
+        console.error('Cloudinary upload error:', cloudinaryError);
+        return res.status(500).json({ message: 'Failed to upload payment screenshot.' });
+      }
+    }
+
+    // Create new application entry
     const newApplication = new ApplicationModel({
       eventId,
       userId,
@@ -574,11 +588,12 @@ const applyForEvent = async (req, res) => {
       profile_photo: user.profile_photo,
       eventName: event.eventName,
       eventDate: event.eventDate,
-      eventEndDate:event.eventEndDate,
+      eventEndDate: event.eventEndDate,
       isPaid: event.price > 0,
       price: event.price,
       eventImageURL: event.eventImageURL,
       qrCodeImageURL: event.qrCodeImageURL || null,
+      paymentScreenshotURL, // store uploaded screenshot
       paymentStatus: event.price === 0 ? 'Verified' : 'Unverified',
       status: 'Pending',
       notes: req.body.notes || ''
@@ -586,24 +601,24 @@ const applyForEvent = async (req, res) => {
 
     await newApplication.save();
 
+    // Update event participant list and count
     await EventModel.findByIdAndUpdate(
-  eventId,
-  {
-    $push: {
-      participants: {
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone_no,
-        studentId: user.student_id,
-        profile_photo: user.profile_photo
-      }
-    },
-    $inc: { currentApplications: 1 }
-  },
-  { new: true }
-);
-
+      eventId,
+      {
+        $push: {
+          participants: {
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone_no,
+            studentId: user.student_id,
+            profile_photo: user.profile_photo
+          }
+        },
+        $inc: { currentApplications: 1 }
+      },
+      { new: true }
+    );
 
     res.status(201).json({
       message: 'Application submitted successfully!',
@@ -615,7 +630,6 @@ const applyForEvent = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong while applying for the event.' });
   }
 };
-
 
 
 // GET /api/user/events/:eventId/details
