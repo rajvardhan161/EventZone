@@ -331,7 +331,7 @@ const Navbar = () => {
                                      <img src={userImage} className='w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0' alt='' onError={(e) => { e.target.onerror = null; e.target.src = assets.default_avatar; }}/>
                                     <p className="text-sm text-gray-800 font-medium truncate">Hi, {userFirstName}</p>
                                 </div>
-                                <button onClick={() => handleMobileNavigate('/my-profile')} className="w-full py-2.5 px-4 text-sm text-center text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md transition-colors" aria-label="Go to My Profile">My Profile</button>
+                                <button onClick={() => handleMobileNavigate('/profile')} className="w-full py-2.5 px-4 text-sm text-center text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md transition-colors" aria-label="Go to My Profile">My Profile</button>
                                 <button onClick={logout} className="w-full py-2.5 px-4 text-sm text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded-md font-semibold transition-colors" aria-label="Logout">Logout</button>
                            </div>
                          ) : (
