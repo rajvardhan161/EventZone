@@ -268,7 +268,7 @@ const Navbar = () => {
                                      <img src={userImage} className='w-5 h-5 rounded-full object-cover border border-gray-200 flex-shrink-0' alt='' onError={(e) => { e.target.onerror = null; e.target.src = assets.default_avatar; }}/>
                                     <span className="truncate">Hi, {userFirstName}</span>
                                 </div>
-                                <button onClick={() => { navigate('/my-profile'); setShowProfileMenu(false); }} className='block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus:bg-gray-100 focus:text-gray-900 rounded-none' role="menuitem">My Profile</button>
+                                <button onClick={() => { navigate('/profile'); setShowProfileMenu(false); }} className='block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus:bg-gray-100 focus:text-gray-900 rounded-none' role="menuitem">My Profile</button>
                                 <button onClick={logout} className='block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:bg-red-50 focus:text-red-700 font-medium rounded-none' role="menuitem">Logout</button>
                             </div>
                         </div>
