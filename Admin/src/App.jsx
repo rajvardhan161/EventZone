@@ -30,7 +30,7 @@ import AllOrganizers from './pages/Allstaff';
 import OrganizerDashboard from './pages/staff/OrganizerDashboard';
 import OrganizerProfile from './pages/staff/OrganizerProfile';
 import OrganizerEditProfile from './pages/staff/OrganizerEditProfile';
-import EventmanageO from './pages/staff/eventmanageO';
+import EventmanageO from './pages/staff/EventmanageO';
 import EventManage from './pages/staff/EventManage';
 import EventDetailManage from './pages/staff/EventDetailManage';
  
