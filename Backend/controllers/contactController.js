@@ -1,7 +1,7 @@
  
 import mongoose from 'mongoose'
 import InquiryModel from '../Models/InquiryModel.js';
-import EventOrganization from '../models/EventOrganization.js';
+import EventOrganization from '../Models/EventOrganization.js';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 dotenv.config();
