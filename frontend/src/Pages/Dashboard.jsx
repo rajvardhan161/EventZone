@@ -355,7 +355,7 @@ const UserDashboard = () => {
 
   return (
     <div
-      className="min-h-screen p-8 transition-colors duration-500"
+      className="min-h-screen p-8  transition-colors duration-500"
       style={{
         backgroundColor: currentTheme.bgColor,
         color: currentTheme.textColor,
@@ -364,7 +364,7 @@ const UserDashboard = () => {
     >
       <div className="max-w-7xl mx-auto">
         {profileData && !loadingStates.profile && !errorStates.profile && (
-          <div className="mb-8 p-8 rounded-2xl shadow-xl flex flex-col md:flex-row items-center justify-between transition-all duration-500"
+          <div className="mb-8 p-8 rounded-2xl shadow-xl flex bg-white flex-col md:flex-row items-center justify-between transition-all duration-500"
             style={{
               backgroundColor: currentTheme.accentColor,
               color: currentTheme.background,
@@ -410,8 +410,8 @@ const UserDashboard = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-8">
+        <div className="grid grid-cols-1  lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 bg-white space-y-8">
             {renderSection({
               title: "Profile Overview",
               sectionId: "profile-overview",
@@ -422,7 +422,7 @@ const UserDashboard = () => {
               iconComponent: FaUserCircle,
               children: (
                 <div
-                  className="p-8 rounded-2xl shadow-xl text-center border transition-all duration-500 hover:shadow-2xl"
+                  className="p-8 rounded-2xl shadow-xl text-center border   transition-all duration-500 hover:shadow-2xl"
                   style={detailCardStyles(currentTheme)}
                 >
                   <img
@@ -461,8 +461,8 @@ const UserDashboard = () => {
               errorMsg: errorStates.profile,
               iconComponent: FaClipboardList,
               children: (
-                <div className="grid grid-cols-2 gap-4 text-center w-full">
-                  <div className="p-5 rounded-lg border transition-colors duration-300 hover:shadow-sm" style={statCardStyles(currentTheme, currentTheme.primaryColor)}>
+                <div className="grid  grid-cols-2 gap-4 text-center w-full">
+                  <div className="p-5 rounded-lg border transition-colors  duration-300 hover:shadow-sm" style={statCardStyles(currentTheme, currentTheme.primaryColor)}>
                     <p className="text-3xl stat-value">{(profileStats.current_semester.length > 3) ? profileStats.current_semester.slice(0,3) + '..' : profileStats.current_semester}</p>
                     <p className="text-sm stat-label mt-1">Semester</p>
                   </div>
@@ -501,8 +501,8 @@ const UserDashboard = () => {
             })}
           </div>
 
-          <div className="lg:col-span-2 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="lg:col-span-2 space-y-8 bg-white">
+            <div className="grid grid-cols-1 bg-white  md:grid-cols-2 gap-8">
               {renderSection({
                 title: "Event Applications",
                 sectionId: "event-applications",
@@ -513,7 +513,7 @@ const UserDashboard = () => {
                 iconComponent: FaTasks,
                 children: (
                   <div
-                    className="p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between border"
+                    className="p-6  rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer flex items-center justify-between border"
                     style={detailCardStyles(currentTheme)}
                   >
                     <div>
@@ -567,7 +567,7 @@ const UserDashboard = () => {
               onClick: goToPublicNotices,
               iconComponent: FaBell,
               children: (
-                <div className="space-y-4">
+                <div className="space-y-4 ">
                   {latestNotices.map((notice) => (
                     <NoticeCard
                       key={notice._id}

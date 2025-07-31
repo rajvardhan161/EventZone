@@ -117,6 +117,8 @@ const ThemedAppContent = () => {
             <Route path='/organizer/create-event' element={<EventmanageO/>}/>
             <Route path='/my-events' element={<EventManage/>}/>
             <Route path='/my-events/:id' element={<EventDetailManage/>}/>
+             <Route path="*" element={<div className="p-4">404 - Page Not Found</div>} />
+  
           </Routes>
         </main>
       </div>

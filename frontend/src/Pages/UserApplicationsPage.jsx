@@ -111,7 +111,7 @@ const UserApplicationsPage = () => {
         fontFamily: currentTheme.fontFamily,
       }}
     >
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto ">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-extrabold" style={{ color: currentTheme.primaryColor, fontFamily: currentTheme.fontFamily }}>
