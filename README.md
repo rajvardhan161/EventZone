@@ -2,6 +2,23 @@
 
 Eventzone is a platform for managing events, where users can view, apply for, and manage event-related activities. The platform provides features such as event creation, user applications, and a dashboard for admins to track applications and manage events.
 
+## 🔗 Live Links
+
+### 🧑‍💻 Admin Dashboard  
+> *(Accessible only to authorized admin accounts)*  
+🔐 https://eventzone-admin.onrender.com/
+
+---
+
+### 🌐 Public User Website  
+> *(For normal users)*  
+🚀https://eventzone-frontend.onrender.com/
+
+---
+
+
+
+
 ## Features
 
 - **Event Creation**: Admins can create new events with details like name, date, description, and payment handling.
