@@ -34,42 +34,42 @@ const AboutPage = () => {
   const teamMembers = [
     {
       id: 1,
-      name: "Sanjeev Kumar",
+      name: "Rajvardhan",
       imageUrl: teamMember1,
       position: "Backend and Frontend Developer",
-      email: "event@mednova.store",
+      email: "vardhanraj411@gmail.com",
       
-      linkedin: "https://www.linkedin.com/in/sanjeevkumaryadav/",
+      linkedin: "https://www.linkedin.com/in/raj-vardhan-webdev/",
       description: "Passionate about building robust and scalable backend systems  to power seamless event experiences."
     },
     {
       id: 2,
-      name: "Sajal",
+      name: "Pragya Singh",
       imageUrl: teamMember2,
       position: "Frontend Developer",
-      email: "sajal@eventzone.com",
+      email: "Pragya singh@eventzone.com",
      
-      linkedin: "https://linkedin.com/in/sajaldev",
+      linkedin: "https://linkedin.com/in/pragya",
       description: "Crafting intuitive and engaging user interfaces that make discovering and managing events a joy."
     },
     {
       id: 3,
-      name: "Deepak",
+      name: "Ankush",
       imageUrl: teamMember3,
       position: "Lead Designer",
-      email: "deepak.design@eventzone.com",
+      email: "Ankush.design@eventzone.com",
      
-      linkedin: "https://linkedin.com/in/deepakdesigner",
+      linkedin: "https://linkedin.com/in/ankush",
       description: "Translating ideas into visually compelling designs that capture the essence of every event."
     },
     {
       id: 4,
-      name: "Ayushman Sharma",
+      name: "Vardhan",
       imageUrl: teamMember4,
       position: "UI/UX Designer",
-      email: "ayushman.uiux@eventzone.com",
+      email: "vardhan.uiux@eventzone.co",
   
-      linkedin: "https://linkedin.com/in/ayushmandesign",
+      linkedin: "https://www.linkedin.com/in/raj-vardhan-webdev/",
       description: "Focusing on user-centered design to create memorable and accessible event journeys."
     },
   ];
