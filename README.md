@@ -25,7 +25,7 @@
 | **React** | UI library for building user interface components |
 | **Vite** | Fast build tool for development & production builds  [oai_citation:0‡React](https://react.dev/learn/build-a-react-app-from-scratch?utm_source=chatgpt.com)
 | **CSS / Tailwind / Styled-Components** | (Update based on your styling setup) |
-| **JavaScript| Primary language |
+| **JavaScript** | Primary language |
 
 ---
 
